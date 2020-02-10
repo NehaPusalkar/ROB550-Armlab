@@ -258,6 +258,8 @@ class Joint:
 
         @return     Clamped angle
         """
+        pos = min(self.max_angle, pos)
+        pos = max(self.min_angle, pos)
         return pos
 
     def _safe_serial(self, func, *args, **kwargs):

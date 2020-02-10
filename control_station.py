@@ -183,8 +183,14 @@ class Gui(QMainWindow):
         nxt_if_arm_init = lambda next_state: self.sm.set_next_state(next_state if self.rexarm.initialized else None)
         self.ui.btn_estop.clicked.connect(self.estop)
         self.ui.btn_init_arm.clicked.connect(self.initRexarm)
+        self.ui.btn_exec.clicked.connect(partial(nxt_if_arm_init, 'execute'))
         self.ui.btnUser1.setText("Calibrate")
         self.ui.btnUser1.clicked.connect(partial(nxt_if_arm_init, 'calibrate'))
+        self.ui.btnUser2.setText("Record")
+        self.ui.btnUser2.clicked.connect(partial(nxt_if_arm_init, 'record'))
+        self.ui.btnUser3.setText("Play Back")
+        self.ui.btnUser3.clicked.connect(partial(nxt_if_arm_init, 'play_back'))
+
         # Sliders
         for sldr in self.joint_sliders:
             sldr.valueChanged.connect(self.sliderChange)

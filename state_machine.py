@@ -4,6 +4,7 @@ The state machine that implements the logic.
 
 import time
 import numpy as np
+import csv
 
 class StateMachine():
     """!
@@ -76,6 +77,9 @@ class StateMachine():
 
         if self.next_state == "manual":
             self.manual()
+        
+        if self.next_state == "record":
+            self.record()
 
 
     """Functions run for each state"""
@@ -112,7 +116,10 @@ class StateMachine():
             # Ensure the correct number of joint angles
             full_wp = [0.0] * self.rexarm.num_joints
             full_wp[0:len(wp)] = wp
-            # TODO: Set the positions and break if estop is needed
+            if(self.next_state == "estop"):
+                break
+            self.rexarm.set_positions(full_wp)
+            time.sleep(1)
 
     def execute_tp(self):
         """!
@@ -164,6 +171,20 @@ class StateMachine():
 
         self.status_message = "Calibration - Completed Calibration"
         time.sleep(1)
+
+    def record(self):
+        self.status_message = "State: Recording...(Teaching...)"
+        self.current_state = "record"
+        self.next_state = "idle"
+        self.rexarm.disable_torque()
+        with open('recording.txt', 'w+') as record_file:
+            for _ in range(0,10):
+                csv_writer = csv.writer(record_file, delimiter = ',')
+                csv_writer.writerow(self.rexarm.position_fb)
+                time.sleep(0.5)
+                if self.next_state == "estop":
+                    break
+
 
     def initialize_rexarm(self):
         """!

@@ -269,3 +269,4 @@ srp_md/src/srp_md/ui/pyqt_format.py
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
+.DS_Store
