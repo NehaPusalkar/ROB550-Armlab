@@ -81,6 +81,9 @@ class StateMachine():
         if self.next_state == "record":
             self.record()
 
+        if self.next_state == "play_back":
+            self.play_back()
+
 
     """Functions run for each state"""
 
@@ -173,17 +176,41 @@ class StateMachine():
         time.sleep(1)
 
     def record(self):
+        """!
+        @brief     Task 2.2 Record Actions(Teach)
+        """
         self.status_message = "State: Recording...(Teaching...)"
         self.current_state = "record"
         self.next_state = "idle"
         self.rexarm.disable_torque()
-        with open('recording.txt', 'w+') as record_file:
+        with open('recording.txt', 'w') as record_file:
             for _ in range(0,10):
                 csv_writer = csv.writer(record_file, delimiter = ',')
                 csv_writer.writerow(self.rexarm.position_fb)
                 time.sleep(0.5)
                 if self.next_state == "estop":
                     break
+
+    def play_back(self):
+        """!
+        @brief     Task 2.2 Play Back All Actions(Repeat)
+        """
+        self.status_message = "State: Playing...(Repeating...)"
+        self.current_state = "play_back"
+        self.next_state = "idle"
+        self.rexarm.set_torque_limits([50 / 100.0] * self.rexarm.num_joints)
+        self.rexarm.set_speeds_normalized_all(25 / 100.0)
+        with open('recording.txt', 'r') as record_file:
+            csv_reader = csv.reader(record_file, delimiter = ',')
+            for row in csv_reader:
+                pos = []
+                for item in row:
+                    pos.append(float(item))
+                print(pos)
+                self.rexarm.set_positions(pos)
+                if self.next_state == "estop":
+                    break
+                time.sleep(1)
 
 
     def initialize_rexarm(self):
