@@ -5,6 +5,7 @@ The state machine that implements the logic.
 import time
 import numpy as np
 import csv
+from trajectory_planner import TrajectoryPlanner
 
 class StateMachine():
     """!
@@ -139,12 +140,18 @@ class StateMachine():
         self.status_message = "State: Execute TP - Executing Motion Plan with trajectory planner"
         self.current_state = "execute"
         self.next_state = "idle"
-        waypoints = []
+        # waypoints = []
         for wp in self.waypoints:
             full_wp = [0.0] * self.rexarm.num_joints
             full_wp[0:len(wp)] = wp
-            waypoints.append(full_wp)
+            # waypoints.append(full_wp)
             # TODO: Send the waypoints to the trajectory planner and break if estop
+            tp = TrajectoryPlanner(self.rexarm)
+            tp.set_initial_wp()
+            tp.set_final_wp(full_wp)
+            tp.go(1)
+            if(self.next_state == "estop"):
+                break
 
     def calibrate(self):
         """!

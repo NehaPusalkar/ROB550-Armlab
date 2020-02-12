@@ -196,6 +196,8 @@ class Gui(QMainWindow):
         self.ui.btnUser5.clicked.connect(partial(nxt_if_arm_init, 'record_one'))
         self.ui.btnUser6.setText("Clear Record")
         self.ui.btnUser6.clicked.connect(partial(nxt_if_arm_init, 'clear_record'))
+        self.ui.btnUser6.setText("Execute TP")
+        self.ui.btnUser6.clicked.connect(partial(nxt_if_arm_init, 'execute_tp'))
 
         # Sliders
         for sldr in self.joint_sliders:

@@ -28,6 +28,7 @@ class TrajectoryPlanner():
         """!
         @brief      TODO: Sets the initial wp to the current position.
         """
+        self.initial_wp = self.rexarm.position_fb
         pass
 
     def set_final_wp(self, waypoint):
@@ -36,6 +37,7 @@ class TrajectoryPlanner():
 
         @param      waypoint  The waypoint
         """
+        self.final_wp = waypoint
         pass
 
     def go(self, max_speed=2.5):
@@ -44,12 +46,16 @@ class TrajectoryPlanner():
 
         @param      max_speed  The maximum speed
         """
+        T = self.calc_time_from_waypoints(self.initial_wp, self.final_wp, max_speed)
+        plan = self.generate_cubic_spline(self.initial_wp, self.final_wp, T)
+        self.execute_plan(plan)
         pass
 
     def stop(self):
         """!
         @brief      TODO Stop the trajectory planner
         """
+
         pass
 
     def calc_time_from_waypoints(self, initial_wp, final_wp, max_speed):
@@ -62,7 +68,8 @@ class TrajectoryPlanner():
 
         @return     The amount of time to get to the final waypoint.
         """
-        pass
+        T = abs(np.array(final_wp) - np.array(initial_wp))/max_speed
+        return max(T)
 
     def generate_cubic_spline(self, initial_wp, final_wp, T):
         """!
@@ -74,7 +81,17 @@ class TrajectoryPlanner():
 
         @return     The plan as num_steps x num_joints np.array
         """
-        pass
+        H = np.array([[1,0,0,0],[0,1,0,0],[1,T,T**2,T**3],[0,1,2*T,3*T**2]])
+        t = np.arange(0,T,self.dt)
+        H_inv = np.linalg.inv(H)
+        output = []
+        for i in range(4):
+            B = np.array([initial_wp[i],0,final_wp[i],0])
+            A = np.dot(H_inv, B)
+            t_matrix = np.array([np.ones(len(t)), t, t**2, t**3])
+            output.append(np.dot(np.transpose(t_matrix), A))
+        output = np.transpose(np.array(output))
+        return output
 
     def execute_plan(self, plan, look_ahead=8):
         """!
@@ -83,4 +100,8 @@ class TrajectoryPlanner():
         @param      plan        The plan
         @param      look_ahead  The look ahead
         """
+        print("---------")
+        for i in range(len(plan)):
+            self.rexarm.set_positions(plan[i])
+            time.sleep(self.dt)
         pass
