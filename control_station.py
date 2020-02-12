@@ -188,8 +188,14 @@ class Gui(QMainWindow):
         self.ui.btnUser1.clicked.connect(partial(nxt_if_arm_init, 'calibrate'))
         self.ui.btnUser2.setText("Record")
         self.ui.btnUser2.clicked.connect(partial(nxt_if_arm_init, 'record'))
-        self.ui.btnUser3.setText("Play Back")
-        self.ui.btnUser3.clicked.connect(partial(nxt_if_arm_init, 'play_back'))
+        self.ui.btnUser3.setText("Stop Record")
+        self.ui.btnUser3.clicked.connect(partial(nxt_if_arm_init, 'stop_record'))
+        self.ui.btnUser4.setText("Play Back")
+        self.ui.btnUser4.clicked.connect(partial(nxt_if_arm_init, 'play_back'))
+        self.ui.btnUser5.setText("Record One")
+        self.ui.btnUser5.clicked.connect(partial(nxt_if_arm_init, 'record_one'))
+        self.ui.btnUser6.setText("Clear Record")
+        self.ui.btnUser6.clicked.connect(partial(nxt_if_arm_init, 'clear_record'))
 
         # Sliders
         for sldr in self.joint_sliders:

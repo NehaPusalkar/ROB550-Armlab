@@ -81,9 +81,17 @@ class StateMachine():
         if self.next_state == "record":
             self.record()
 
+        if self.next_state == "record_one":
+            self.record_one()
+
         if self.next_state == "play_back":
             self.play_back()
 
+        if self.next_state == "stop_record":
+            self.next_state = "initialize_rexarm"
+
+        if self.next_state == "clear_record":
+            self.clear_record()
 
     """Functions run for each state"""
 
@@ -175,6 +183,23 @@ class StateMachine():
         self.status_message = "Calibration - Completed Calibration"
         time.sleep(1)
 
+    def clear_record(self):
+        self.status_message = "State: Clearing Record ..."
+        self.current_state = "clear_record"
+        self.next_state = "idle"
+        open('recording.txt', 'w').close()
+
+    def record_one(self):
+        """!
+        @brief     Task 2.2 Record Actions One Point
+        """
+        self.status_message = "State: Recording One...(Teaching...)"
+        self.current_state = "record_one"
+        self.next_state = "idle"
+        with open('recording.txt', 'a') as record_file:
+            csv_writer = csv.writer(record_file, delimiter = ',')
+            csv_writer.writerow(self.rexarm.position_fb)
+
     def record(self):
         """!
         @brief     Task 2.2 Record Actions(Teach)
@@ -184,10 +209,12 @@ class StateMachine():
         self.next_state = "idle"
         self.rexarm.disable_torque()
         with open('recording.txt', 'w') as record_file:
-            for _ in range(0,10):
+            while True:
                 csv_writer = csv.writer(record_file, delimiter = ',')
                 csv_writer.writerow(self.rexarm.position_fb)
-                time.sleep(0.5)
+                time.sleep(0.1)
+                if self.next_state == "stop_record":
+                    break
                 if self.next_state == "estop":
                     break
 
@@ -197,9 +224,9 @@ class StateMachine():
         """
         self.status_message = "State: Playing...(Repeating...)"
         self.current_state = "play_back"
-        self.next_state = "idle"
-        self.rexarm.set_torque_limits([50 / 100.0] * self.rexarm.num_joints)
-        self.rexarm.set_speeds_normalized_all(25 / 100.0)
+        self.next_state = "initialize_rexarm"
+        self.rexarm.set_torque_limits([40 / 100.0] * self.rexarm.num_joints)
+        self.rexarm.set_speeds_normalized_all(20 / 100.0)
         with open('recording.txt', 'r') as record_file:
             csv_reader = csv.reader(record_file, delimiter = ',')
             for row in csv_reader:
