@@ -145,7 +145,7 @@ class TrajectoryPlanner():
         for i in range(len(plan)):
             index = min(i+look_ahead, len(plan) - 1)
             self.rexarm.set_positions(plan[index])
-            self.rexarm.set_speeds_normalized(plan_s[index]/3)
+            self.rexarm.set_speeds(plan_s[index])
             print(max(abs(np.array(self.rexarm.position_fb - np.array(plan[index])))))
             if(max(abs(np.array(self.rexarm.position_fb - np.array(plan[index])))) >= 0.15):
                 time.sleep(self.dt)
