@@ -40,14 +40,17 @@ class TrajectoryPlanner():
         self.final_wp = waypoint
         pass
 
-    def go(self, max_speed=2.5):
+    def go(self, max_speed=1):
         """!
         @brief      TODO Plan and execute the trajectory.
 
         @param      max_speed  The maximum speed
         """
         T = self.calc_time_from_waypoints(self.initial_wp, self.final_wp, max_speed)
-        plan = self.generate_cubic_spline(self.initial_wp, self.final_wp, T)
+        plan = self.generate_quintic_spline(self.initial_wp, self.final_wp, T)
+        print("--herhe--------\n")
+        print(len(plan))
+        print("--herhe--------\n")
         self.execute_plan(plan)
         pass
 
@@ -127,7 +130,7 @@ class TrajectoryPlanner():
         output = np.transpose(np.array(output))
         return output
 
-    def execute_plan(self, plan, look_ahead=8):
+    def execute_plan(self, plan, look_ahead=10):
         """!
         @brief      TODO: Execute the planed trajectory.
 
@@ -136,6 +139,7 @@ class TrajectoryPlanner():
         """
         print("---------")
         for i in range(len(plan)):
-            self.rexarm.set_positions(plan[i])
+            index = min(i+look_ahead, len(plan) - 1)
+            self.rexarm.set_positions(plan[index])
             time.sleep(self.dt)
         pass
