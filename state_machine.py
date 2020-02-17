@@ -149,7 +149,7 @@ class StateMachine():
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(full_wp)
-            tp.go(1)
+            tp.go(2.0)
             if(self.next_state == "estop"):
                 break
 
