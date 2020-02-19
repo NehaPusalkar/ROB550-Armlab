@@ -5,7 +5,9 @@ The state machine that implements the logic.
 import time
 import numpy as np
 import csv
+import cv2
 from trajectory_planner import TrajectoryPlanner
+import pupil_apriltags as ag
 
 class StateMachine():
     """!
@@ -165,6 +167,14 @@ class StateMachine():
                             "upper right corner of board",
                             "lower right corner of board",
                             "center of shoulder motor"]
+
+        detector = ag.Detector(families = "tagStandard41h12",
+                                quad_decimate=1.0)
+        image = self.kinect.VideoFrame
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        detections = detector.detect(image)
+        print(detections)
+
         i = 0
         for j in range(5):
             self.status_message = "Calibration - Click %s in RGB image" % location_strings[j]
@@ -175,19 +185,30 @@ class StateMachine():
                     self.kinect.new_click = False
 
         i = 0
+        depth = []
         for j in range(5):
             self.status_message = "Calibration - Click %s in depth image" % location_strings[j]
             while (i <= j):
                 if(self.kinect.new_click == True):
                     self.kinect.depth_click_points[i] = self.kinect.last_click.copy()
+                    depth.append(self.kinect.DepthFrameRaw[self.kinect.depth_click_points[i][1], self.kinect.depth_click_points[i][0]])
                     i = i + 1
                     self.kinect.new_click = False
-
+        
         """TODO Perform camera calibration here"""
         print("camera calibration now\n")
-        print(self.kinect.rgb_click_points)
-        print(self.kinect.depth_click_points)
+        self.kinect.depth2rgb_affine = self.kinect.getAffineTransform(self.kinect.rgb_click_points, self.kinect.depth_click_points)
+        self.kinect.kinectCalibrated = True
 
+        print(self.kinect.depth2rgb_affine)
+        depth = 0.1236 * np.tan(np.array(depth)/2842.5 + 1.1863)
+        cam_matrix, coeff = self.kinect.loadCameraCalibration()
+        real = np.array([[-57/2, -57/2, 0],[-57/2, 57/2, 0],[57/2, 57/2, 0],[57/2, -57/2, 0],[0, 0, 0]], dtype=np.float32)
+        ex_matrix = cv2.solvePnP(real, self.kinect.rgb_click_points.astype(np.float32), cam_matrix, coeff)
+        R = cv2.Rodrigues(ex_matrix[1])
+        t = ex_matrix[2]
+        print(R)
+        print(t)
         self.status_message = "Calibration - Completed Calibration"
         time.sleep(1)
 

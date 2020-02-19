@@ -165,10 +165,19 @@ class Kinect():
 
         @return     Affine transform between coordinates.
         """
-        pts1 = coord1[0:3].astype(np.float32)
-        pts2 = coord2[0:3].astype(np.float32)
-        print(cv2.getAffineTransform(pts1, pts2))
-        return cv2.getAffineTransform(pts1, pts2)
+        A = []
+        B = []
+        for point in coord2:
+            A.append([point[0], point[1], 1, 0, 0, 0])
+            A.append([0, 0, 0, point[0], point[1], 1])
+        for point in coord1:
+            B.append(point[0])
+            B.append(point[1])
+        return np.reshape(np.dot(np.linalg.pinv(np.array(A)), np.array(B)),(2,3))
+        #pts1 = coord1[0:3].astype(np.float32)
+        #pts2 = coord2[0:3].astype(np.float32)
+        #print(cv2.getAffineTransform(pts1, pts2))
+        #return cv2.getAffineTransform(pts1, pts2)
 
 
     def registerDepthFrame(self, frame):
@@ -182,15 +191,20 @@ class Kinect():
 
         @return     { description_of_the_return_value }
         """
-        pass
+        frame_new = cv2.warpAffine(frame, self.depth2rgb_affine, (np.shape(frame)[1], np.shape(frame)[0]))
+        return frame_new
 
-    def loadCameraCalibration(self, file):
+    def loadCameraCalibration(self):
         """!
         @brief      Load camera intrinsic matrix from file.
 
         @param      file  The file
         """
-        pass
+        cam_matrix = np.array([[ 519.34051904,    0. ,         315.7606452 ],
+                                [   0.       ,   518.6592693  , 261.70664023],
+                                [   0.        ,    0.          ,  1.        ]])
+        coeff = np.array([2.49214268e-01, -8.95220241e-01, 2.89218047e-05,  -3.81858526e-03, 1.13898317e+00])
+        return cam_matrix, coeff
 
     def blockDetector(self):
         """!
