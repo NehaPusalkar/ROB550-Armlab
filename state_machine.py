@@ -149,7 +149,7 @@ class StateMachine():
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(full_wp)
-            tp.go(2.0)
+            tp.go(5)
             if(self.next_state == "estop"):
                 break
 
@@ -184,6 +184,7 @@ class StateMachine():
                     self.kinect.new_click = False
 
         """TODO Perform camera calibration here"""
+        print("camera calibration now\n")
         print(self.kinect.rgb_click_points)
         print(self.kinect.depth_click_points)
 
