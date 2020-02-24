@@ -90,6 +90,9 @@ class StateMachine():
         if self.next_state == "play_back":
             self.play_back()
 
+        if self.next_state == "check_cali":
+            self.check_cali()
+
         if self.next_state == "stop_record":
             self.next_state = "initialize_rexarm"
 
@@ -170,24 +173,36 @@ class StateMachine():
 
         detector = ag.Detector(families = "tagStandard41h12",
                                 quad_decimate=1.0)
-        image = self.kinect.VideoFrame
+        image = self.kinect.VideoFrame #1280X960
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         detections = detector.detect(image)
-        print(detections)
-
+        while(len(detections) != 4):
+            image = self.kinect.VideoFrame
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            print(len(detections))
+            print("Dececting again...")
+            detections = detector.detect(image)
+            if(self.next_state == "estop"):
+                return False
+        print("Detection Done!")
+        detected_points = []
+        for detec in detections:
+            if(detec.tag_id in range(4,8)):
+                detected_points.append(detec.center)
+        '''
         i = 0
-        for j in range(5):
-            self.status_message = "Calibration - Click %s in RGB image" % location_strings[j]
+        for j in range(10):
+            #self.status_message = "Calibration - Click %s in RGB image" % location_strings[j]
             while (i <= j):
                 if(self.kinect.new_click == True):
                     self.kinect.rgb_click_points[i] = self.kinect.last_click.copy()
                     i = i + 1
                     self.kinect.new_click = False
-
+        self.status_message = "Calibration Depth"
         i = 0
         depth = []
-        for j in range(5):
-            self.status_message = "Calibration - Click %s in depth image" % location_strings[j]
+        for j in range(10):
+            #self.status_message = "Calibration - Click %s in depth image" % location_strings[j]
             while (i <= j):
                 if(self.kinect.new_click == True):
                     self.kinect.depth_click_points[i] = self.kinect.last_click.copy()
@@ -202,15 +217,36 @@ class StateMachine():
 
         print(self.kinect.depth2rgb_affine)
         depth = 0.1236 * np.tan(np.array(depth)/2842.5 + 1.1863)
-        cam_matrix, coeff = self.kinect.loadCameraCalibration()
-        real = np.array([[-57/2, -57/2, 0],[-57/2, 57/2, 0],[57/2, 57/2, 0],[57/2, -57/2, 0],[0, 0, 0]], dtype=np.float32)
-        ex_matrix = cv2.solvePnP(real, self.kinect.rgb_click_points.astype(np.float32), cam_matrix, coeff)
-        R = cv2.Rodrigues(ex_matrix[1])
+        '''
+        cam_matrix, coeff, affine_matrix = self.kinect.loadCameraCalibration()
+        self.kinect.depth2rgb_affine = affine_matrix
+        real = np.array([[-0.57/2, -0.57/2, 0],[-0.57/2, 0.57/2, 0],[0.57/2, 0.57/2, 0],[0.57/2, -0.57/2, 0]], dtype=np.float32)
+        ##TODO check [x,y] or [y,x]
+        ex_matrix = cv2.solvePnP(real, [0.46875, 0.5]*np.array(detected_points), cam_matrix, coeff)
+        R = cv2.Rodrigues(ex_matrix[1])[0]
         t = ex_matrix[2]
-        print(R)
-        print(t)
+        cam_matrix_inv = np.linalg.inv(cam_matrix)
+        cam_matrix_inv[2][2] = 1
+        #self.kinect.ex_matrix = np.concatenate((np.linalg.inv(R), -t), axis=1)
+        self.kinect.ex_matrix = np.concatenate((R, t), axis=1)
+        self.kinect.cam_matrix_inv = cam_matrix_inv
+        self.kinect.kinectCalibrated = True
         self.status_message = "Calibration - Completed Calibration"
         time.sleep(1)
+
+    def check_cali(self):
+        self.current_state = "check_cali"
+        self.next_state = "idle"
+        while(not self.next_state=='estop'):
+            if(self.kinect.new_click == True):
+                rgb_click_point = self.kinect.last_click.copy()
+                self.kinect.new_click = False
+                depth = self.kinect.DepthFrameRaw[rgb_click_point[1], rgb_click_point[0]]
+                depth = 0.1236 * np.tan(depth/2842.5 + 1.1863)
+                xyz_in_cam = depth * np.dot(self.kinect.cam_matrix_inv, np.append(rgb_click_point, 1))
+                xyz_in_cam_h = np.append(xyz_in_cam, 1)
+                xyz_in_world = np.dot(self.kinect.ex_matrix, xyz_in_cam_h)
+                print(xyz_in_world)
 
     def clear_record(self):
         self.status_message = "State: Clearing Record ..."

@@ -38,11 +38,13 @@ class Kinect():
 
         # mouse clicks & calibration variables
         self.depth2rgb_affine = np.float32([[1,0,0],[0,1,0]])
+        self.cam_matrix_inv = np.float32([[1,0,0],[0,1,0],[0,0,1]])
+        self.ex_matrix = np.float32([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         self.kinectCalibrated = False
         self.last_click = np.array([0,0])
         self.new_click = False
-        self.rgb_click_points = np.zeros((5,2),int)
-        self.depth_click_points = np.zeros((5,2),int)
+        self.rgb_click_points = np.zeros((10,2),int)
+        self.depth_click_points = np.zeros((10,2),int)
 
         """ block info """
         self.block_contours = np.array([])
@@ -191,8 +193,7 @@ class Kinect():
 
         @return     { description_of_the_return_value }
         """
-        frame_new = cv2.warpAffine(frame, self.depth2rgb_affine, (np.shape(frame)[1], np.shape(frame)[0]))
-        return frame_new
+        return cv2.warpAffine(frame, self.depth2rgb_affine, (np.shape(frame)[1], np.shape(frame)[0]))
 
     def loadCameraCalibration(self):
         """!
@@ -200,11 +201,13 @@ class Kinect():
 
         @param      file  The file
         """
-        cam_matrix = np.array([[ 519.34051904,    0. ,         315.7606452 ],
+        cam_matrix = np.array([[ 519.34051904,    0. ,         319.7606452 ],
                                 [   0.       ,   518.6592693  , 261.70664023],
                                 [   0.        ,    0.          ,  1.        ]])
         coeff = np.array([2.49214268e-01, -8.95220241e-01, 2.89218047e-05,  -3.81858526e-03, 1.13898317e+00])
-        return cam_matrix, coeff
+        affine_matrix = np.array([[  9.29346844e-1,  -3.23494980e-03,   11.2347976],
+                                  [  1.48233033e-03,   8.74361534e-01,   31.8750435]])
+        return cam_matrix, coeff, affine_matrix
 
     def blockDetector(self):
         """!
@@ -221,4 +224,9 @@ class Kinect():
 
                     TODO: Implement a blob detector to find blocks in the depth image
         """
+        contours = cv2.findContours(self.DepthFrameRaw, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE)
+        perimeter = cv2.arcLength(contours,True)
+        epsilon = 0.1*cv2.arcLength(contours,True)
+        approx = cv2.approxPolyDP(contours,epsilon,True)
+
         pass

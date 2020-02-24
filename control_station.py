@@ -198,6 +198,8 @@ class Gui(QMainWindow):
         self.ui.btnUser6.clicked.connect(partial(nxt_if_arm_init, 'clear_record'))
         self.ui.btnUser6.setText("Execute TP")
         self.ui.btnUser6.clicked.connect(partial(nxt_if_arm_init, 'execute_tp'))
+        self.ui.btnUser7.setText("Check Cali")
+        self.ui.btnUser7.clicked.connect(partial(nxt_if_arm_init, 'check_cali'))
 
         # Sliders
         for sldr in self.joint_sliders:
