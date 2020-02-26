@@ -7,7 +7,7 @@ import numpy as np
 import csv
 import cv2
 from trajectory_planner import TrajectoryPlanner
-import pupil_apriltags as ag
+from apriltag import apriltag
 
 class StateMachine():
     """!
@@ -171,15 +171,14 @@ class StateMachine():
                             "lower right corner of board",
                             "center of shoulder motor"]
 
-        detector = ag.Detector(families = "tagStandard41h12",
-                                quad_decimate=1.0)
+        detector = apriltag("tagStandard41h12")
         image = self.kinect.VideoFrame #1280X960
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         detections = detector.detect(image)
-        while(len(detections) != 4):
+        while(len(detections) != 5):
             image = self.kinect.VideoFrame
             image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-            print(len(detections))
+            print(detections)
             print("Dececting again...")
             detections = detector.detect(image)
             if(self.next_state == "estop"):
@@ -187,8 +186,8 @@ class StateMachine():
         print("Detection Done!")
         detected_points = []
         for detec in detections:
-            if(detec.tag_id in range(4,8)):
-                detected_points.append(detec.center)
+            if(detec['id'] in range(2,8)):
+                detected_points.append(detec['center'])
         '''
         i = 0
         for j in range(10):
@@ -220,9 +219,10 @@ class StateMachine():
         '''
         cam_matrix, coeff, affine_matrix = self.kinect.loadCameraCalibration()
         self.kinect.depth2rgb_affine = affine_matrix
-        real = np.array([[-0.57/2, -0.57/2, 0],[-0.57/2, 0.57/2, 0],[0.57/2, 0.57/2, 0],[0.57/2, -0.57/2, 0]], dtype=np.float32)
+        real = np.array([[-570/2, 0, 75], [-570/2, -570/2, 0],[-570/2, 570/2, 0],[570/2, 570/2, 0],[570/2, -570/2, 0]], dtype=np.float32)
         ##TODO check [x,y] or [y,x]
-        ex_matrix = cv2.solvePnP(real, [0.46875, 0.5]*np.array(detected_points), cam_matrix, coeff)
+        print([0.5, 0.46875]*np.array(detected_points))
+        ex_matrix = cv2.solvePnP(real, [0.5, 0.46875]*np.array(detected_points, dtype=np.float32), cam_matrix, coeff)
         R = cv2.Rodrigues(ex_matrix[1])[0]
         t = ex_matrix[2]
         cam_matrix_inv = np.linalg.inv(cam_matrix)
@@ -230,6 +230,8 @@ class StateMachine():
         #self.kinect.ex_matrix = np.concatenate((np.linalg.inv(R), -t), axis=1)
         self.kinect.ex_matrix = np.concatenate((R, t), axis=1)
         self.kinect.cam_matrix_inv = cam_matrix_inv
+        print(self.kinect.ex_matrix)
+        print(self.kinect.cam_matrix_inv)
         self.kinect.kinectCalibrated = True
         self.status_message = "Calibration - Completed Calibration"
         time.sleep(1)

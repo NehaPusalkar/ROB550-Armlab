@@ -338,9 +338,11 @@ class Gui(QMainWindow):
 
         @param      mouse_event  QtMouseEvent containing the pose of the mouse at the time of the event not current time
         """
-        if self.kinect.DepthFrameRaw.any() != 0:
-            self.ui.rdoutMousePixels.setText("(-,-,-)")
-            self.ui.rdoutMouseWorld.setText("(-,-,-)")
+        if self.kinect.DepthFrameRaw.any() != 0 and self.kinect.kinectCalibrated:
+            pt = mouse_event.pos()
+            xyz = self.kinect.get_xyz_in_world([pt.x(),pt.y()])
+            self.ui.rdoutMousePixels.setText("("+str(pt.x())+","+str(pt.y())+")")
+            self.ui.rdoutMouseWorld.setText("("+str(xyz[0])+","+str(xyz[1])+","+str(xyz[2])+")")
 
     def calibrateMousePress(self, mouse_event):
         """!
