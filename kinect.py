@@ -235,7 +235,7 @@ class Kinect():
         """
         contours = cv2.findContours(self.DepthFrameRaw, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE)
         perimeter = cv2.arcLength(contours,True)
-        epsilon = 0.1*cv2.arcLength(contours,True)
-        approx = cv2.approxPolyDP(contours,epsilon,True)
+        epsilon = 0.1 * perimeter
+        approx = cv2.approxPolyDP(contours, epsilon, True)
 
         pass
