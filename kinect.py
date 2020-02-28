@@ -264,9 +264,16 @@ class Kinect():
 
                     TODO: Implement a blob detector to find blocks in the depth image
         """
+<<<<<<< HEAD
         # contours = cv2.findContours(self.DepthFrameRaw, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE)
         # perimeter = cv2.arcLength(contours,True)
         # epsilon = 0.1*cv2.arcLength(contours,True)
         # approx = cv2.approxPolyDP(contours,epsilon,True)
+=======
+        contours = cv2.findContours(self.DepthFrameRaw, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE)
+        perimeter = cv2.arcLength(contours,True)
+        epsilon = 0.1 * perimeter
+        approx = cv2.approxPolyDP(contours, epsilon, True)
+>>>>>>> fdec3ac16bb2e97fa29930839e16f2f6bbc5edaa
 
         pass
