@@ -1,0 +1,10 @@
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/list_install_components.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/install/local.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/apriltag_python.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/apriltag.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/install.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/apriltag_demo.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/edit_cache.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/install/strip.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/opencv_demo.dir
+/home/student/Downloads/armlab-w20/apriltag-master/CMakeFiles/rebuild_cache.dir
