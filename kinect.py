@@ -38,11 +38,13 @@ class Kinect():
 
         # mouse clicks & calibration variables
         self.depth2rgb_affine = np.float32([[1,0,0],[0,1,0]])
+        self.cam_matrix_inv = np.float32([[1,0,0],[0,1,0],[0,0,1]])
+        self.ex_matrix = np.float32([[1,0,0,0],[0,1,0,0],[0,0,1,0]])
         self.kinectCalibrated = False
         self.last_click = np.array([0,0])
         self.new_click = False
-        self.rgb_click_points = np.zeros((5,2),int)
-        self.depth_click_points = np.zeros((5,2),int)
+        self.rgb_click_points = np.zeros((10,2),int)
+        self.depth_click_points = np.zeros((10,2),int)
 
         """ block info """
         self.block_contours = np.array([])
@@ -165,11 +167,29 @@ class Kinect():
 
         @return     Affine transform between coordinates.
         """
-        pts1 = coord1[0:3].astype(np.float32)
-        pts2 = coord2[0:3].astype(np.float32)
-        print(cv2.getAffineTransform(pts1, pts2))
-        return cv2.getAffineTransform(pts1, pts2)
+        A = []
+        B = []
+        for point in coord2:
+            A.append([point[0], point[1], 1, 0, 0, 0])
+            A.append([0, 0, 0, point[0], point[1], 1])
+        for point in coord1:
+            B.append(point[0])
+            B.append(point[1])
+        return np.reshape(np.dot(np.linalg.pinv(np.array(A)), np.array(B)),(2,3))
+        #pts1 = coord1[0:3].astype(np.float32)
+        #pts2 = coord2[0:3].astype(np.float32)
+        #print(cv2.getAffineTransform(pts1, pts2))
+        #return cv2.getAffineTransform(pts1, pts2)
 
+    def get_xyz_in_world(self, rgb_click_point):
+        depth = self.DepthFrameRaw[rgb_click_point[1], rgb_click_point[0]]
+        depth = 0.1236 * np.tan(depth/2842.5 + 1.1863) * 1000
+        xyz_in_cam = depth * np.dot(self.cam_matrix_inv, np.append(rgb_click_point, 1))
+        xyz_in_world = xyz_in_cam.reshape((3,1)) - self.ex_matrix[:,3].reshape((3,1))
+        print(xyz_in_cam.shape)
+        print(xyz_in_world.shape)
+        xyz_in_world = np.dot(np.linalg.inv(self.ex_matrix[0:3, 0:3]), xyz_in_world)
+        return list(xyz_in_world.reshape(3,))
 
     def registerDepthFrame(self, frame):
         """!
@@ -182,15 +202,21 @@ class Kinect():
 
         @return     { description_of_the_return_value }
         """
-        pass
+        return cv2.warpAffine(frame, self.depth2rgb_affine, (np.shape(frame)[1], np.shape(frame)[0]))
 
-    def loadCameraCalibration(self, file):
+    def loadCameraCalibration(self):
         """!
         @brief      Load camera intrinsic matrix from file.
 
         @param      file  The file
         """
-        pass
+        cam_matrix = np.array([[ 518.78051904,    0. ,         318.6431452 ],
+                                [   0.       ,   518.6592693  , 267.11464023],
+                                [   0.        ,    0.          ,  1.        ]])
+        coeff = np.array([2.49214268e-01, -8.25220241e-01, 1.64661e-03,  -1.79181e-03, 1.131698341e+00])
+        affine_matrix = np.array([[  9.29346844e-1,  -3.23494980e-03,   11.2347976],
+                                  [  1.48233033e-03,   8.74361534e-01,   31.8750435]])
+        return cam_matrix, coeff, affine_matrix
 
     def blockDetector(self):
         """!
@@ -207,4 +233,9 @@ class Kinect():
 
                     TODO: Implement a blob detector to find blocks in the depth image
         """
+        contours = cv2.findContours(self.DepthFrameRaw, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE)
+        perimeter = cv2.arcLength(contours,True)
+        epsilon = 0.1 * perimeter
+        approx = cv2.approxPolyDP(contours, epsilon, True)
+
         pass
