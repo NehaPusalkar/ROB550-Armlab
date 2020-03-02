@@ -50,18 +50,39 @@ while True:
     kinect.captureVideoFrame()
     kinect.captureDepthFrame()
     kinect.ColorizeDepthFrame()
-    depth_frame = cv2.cvtColor(kinect.DepthFrameRGB, cv2.COLOR_RGB2GRAY)
-    video_frame =  cv2.cvtColor(kinect.VideoFrame, cv2.COLOR_RGB2HSV)
+    # depth_frame = cv2.cvtColor(kinect.DepthFrameRGB, cv2.COLOR_RGB2GRAY)
+    video_frame = kinect.VideoFrame
+    #video_frame = cv2.cvtColor(kinect.VideoFrame, cv2.COLOR_RGB2BGR)
+    # depth_frame = cv2.medianBlur(depth_frame, 5)
+    # ret, th1 = cv2.threshold(depth_frame, 210, 255, cv2.THRESH_BINARY)
+    # binary = cv2.Canny(th1, 10, 90)
+    # image, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # canvas = np.zeros((480,640,3)).astype(np.uint8)
+    # canvas[...,0] = depth_frame
+    # canvas[...,1] = depth_frame
+    # canvas[...,2] = depth_frame
+    # if(len(contours)!=0):
+    #     num = 0
+    #     for contour in contours:
+    #         print(num)
+    #         cv2.drawContours(binary, contours, -1, 255*num/len(contours), 3)
+    #         perimeter = cv2.arcLength(contour,True)
+    #         epsilon = 0.1 * perimeter
+    #         approx = cv2.approxPolyDP(contour, epsilon, True)
+    #         cv2.drawContours(canvas, approx, -1, (255,0,255), 3)
+    #         num = num + 1
+
+    #video_frame =  cv2.cvtColor(kinect.VideoFrame, cv2.COLOR_RGB2HSV)
+    #hsv_frame = cv2.cvtColor(kinect.VideoFrame, cv2.COLOR_RGB2HSV)
+    #output_frame = cv2.inRange(hsv_frame,(110,100,100), (120,255,255))
     #kernel = np.ones((4,4),np.uint8)
     #output_frame = cv2.erode(output_frame, kernel)
     #output_frame = cv2.dilate(output_frame, kernel, iterations=2)
 
-    kinect.detectBlocksInDepthImage()
-
-    kinect.blockDetector()
-    #cv2.imshow('Depth', depth_frame)
+    #cv2.imshow('Depth', binary)
     #cv2.imshow('Video', video_frame)
-    #cv2.setMouseCallback("Depth", mouse_callback_depth)
+  #kinect.blockDetector()
+    cv2.setMouseCallback("Video", mouse_callback)
     #cv2.imshow('Output', output_frame)
     k = cv2.waitKey(10)
     if(k == 27): # 'Esc' key

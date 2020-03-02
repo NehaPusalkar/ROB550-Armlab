@@ -227,6 +227,8 @@ class Kinect():
         """
         image = self.VideoFrame
         blur = cv2.GaussianBlur(image,(5,5),5)
+        cv2.namedWindow("first_image",cv2.WINDOW_NORMAL)
+        cv2.imshow("first image",image)
 # convert to HSV
 
         hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
@@ -249,7 +251,7 @@ class Kinect():
 
         output_hsv = hsv.copy()
         output_hsv[np.where(mask==0)] = 0
-
+        cv2.imshow("image",cv2.WINDOW_NORMAL)
         cv2.imshow("image",output_img)
         cv2.namedWindow("hsv_image", cv2.WINDOW_NORMAL)
         cv2.imshow("hsv_image",output_hsv)
@@ -264,25 +266,9 @@ class Kinect():
 
                     TODO: Implement a blob detector to find blocks in the depth image
         """
-        cv2.imread(script_path + "/data/rgb_image.png",cv2.IMREAD_UNCHANGED),cv2.COLOR_BGR2RGB)
-        depth_frame = cv2.cvtColor(self.DepthFrameRGB, cv2.COLOR_RGB2GRAY)
-        #video_frame = kinect.VideoFrame
-        video_frame = cv2.cvtColor(self.VideoFrame, cv2.COLOR_RGB2BGR)
-        depth_frame = cv2.medianBlur(depth_frame, 5)
-        ret, th1 = cv2.threshold(depth_frame, 210, 255, cv2.THRESH_BINARY)
-        binary = cv2.Canny(th1, 10, 90)
-        image, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        canvas = np.zeros((480,640,3)).astype(np.uint8)
-        canvas[...,0] = depth_frame
-        canvas[...,1] = depth_frame
-        canvas[...,2] = depth_frame
-        if(len(contours)!=0):
-            num = 0
-            for contour in contours:
-                print(num)
-                cv2.drawContours(binary, contours, -1, 255*num/len(contours), 3)
-                perimeter = cv2.arcLength(contour,True)
-                epsilon = 0.1 * perimeter
-                approx = cv2.approxPolyDP(contour, epsilon, True)
-                cv2.drawContours(canvas, approx, -1, (255,0,255), 3)
-                num = num + 1
+        # contours = cv2.findContours(self.DepthFrameRaw, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE)
+        # perimeter = cv2.arcLength(contours,True)
+        # epsilon = 0.1*cv2.arcLength(contours,True)
+        # approx = cv2.approxPolyDP(contours,epsilon,True)
+
+        pass
