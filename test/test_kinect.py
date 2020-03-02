@@ -16,7 +16,8 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 
 def mouse_callback(event, x, y, flags, param):
     img = video_frame
-    hsv = cv2.cvtColor(kinect.VideoFrame, cv2.COLOR_RGB2HSV)
+    _video = cv2.medianBlur(kinect.VideoFrame, 3)
+    hsv = cv2.cvtColor(_video, cv2.COLOR_RGB2HSV)
     r = img[y][x][2]
     g = img[y][x][1]
     b = img[y][x][0]
@@ -26,8 +27,8 @@ def mouse_callback(event, x, y, flags, param):
     output_rgb = "R:{}, G:{}, B:{} ".format(r, g, b)
     output_hsv = "H:{}, S:{}, V:{}".format(h, s, v)
     tmp = video_frame.copy()
-    cv2.putText(tmp,output_rgb, (10, 20), font, 0.5, (0, 0, 0))
-    cv2.putText(tmp,output_hsv, (10, 40), font, 0.5, (0, 0, 0))
+    cv2.putText(tmp,output_rgb, (10, 20), font, 1, (255, 0, 0), 2)
+    cv2.putText(tmp,output_hsv, (10, 40), font, 1, (255, 0, 0), 2)
     cv2.imshow('Video', tmp)
 
 def mouse_callback_depth(event, x, y, flags, param):
@@ -52,7 +53,7 @@ while True:
     kinect.ColorizeDepthFrame()
     # depth_frame = cv2.cvtColor(kinect.DepthFrameRGB, cv2.COLOR_RGB2GRAY)
     video_frame = kinect.VideoFrame
-    #video_frame = cv2.cvtColor(kinect.VideoFrame, cv2.COLOR_RGB2BGR)
+    video_frame = cv2.cvtColor(kinect.VideoFrame, cv2.COLOR_RGB2BGR)
     # depth_frame = cv2.medianBlur(depth_frame, 5)
     # ret, th1 = cv2.threshold(depth_frame, 210, 255, cv2.THRESH_BINARY)
     # binary = cv2.Canny(th1, 10, 90)
