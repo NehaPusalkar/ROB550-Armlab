@@ -79,11 +79,11 @@ while True:
     #kernel = np.ones((4,4),np.uint8)
     #output_frame = cv2.erode(output_frame, kernel)
     #output_frame = cv2.dilate(output_frame, kernel, iterations=2)
-
+    kinect.block_and_color_detect()
     #cv2.imshow('Depth', binary)
     #cv2.imshow('Video', video_frame)
-  #kinect.blockDetector()
-    cv2.setMouseCallback("Video", mouse_callback)
+    #kinect.blockDetector()
+    #cv2.setMouseCallback("Video", mouse_callback)
     #cv2.imshow('Output', output_frame)
     k = cv2.waitKey(10)
     if(k == 27): # 'Esc' key
