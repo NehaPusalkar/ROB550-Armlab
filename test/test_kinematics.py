@@ -10,27 +10,28 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 os.sys.path.append(os.path.realpath(script_path + '/../'))
 from kinematics import *
 from copy import deepcopy
+import math
 
 passed = True
 vclamp = np.vectorize(clamp)
 
-link = np.array([0.03953, 0.0975, 0.09879, 0]) # l1, l2, l3, l4
-offset = np.array([0, 0.03468, 0, 0]) #n1, n2, n3, n4
-
-dh_params = [[0, np.pi/2, link[0], np.pi/2],
-             [link[1], 0, 0, np.pi/2],
-             [link[2] + offset[1], 0, 0, -np.pi/2],
+link = np.array([0.042, 0.0975, 0.09879, 0]) # l1, l2, l3, l4
+offset = np.array([0.07, 0.03468, 0, 0]) #base, n2, n3, n4
+a = math.atan2(link[1], offset[1])
+dh_params = [[0, np.pi/2, link[0]+offset[0], np.pi/2],
+             [math.sqrt(link[1]**2 + offset[1]**2), 0, 0, a],
+             [link[2], 0, 0, -a],
              [0, np.pi/2, 0, np.pi/2]]
 
 fk_angles = [
-    [0.0,           0.0,            0.0,            0.0],]
+    [0.0,           0.0,            0.0,            0.0],
     # [np.pi * 0.1,   0.0,            np.pi / 2,      0.0],
     # [np.pi * 0.25,  np.pi / 2,      -np.pi / 2,     np.pi / 2],
     # [np.pi * 0.4,   np.pi / 2,      -np.pi / 2,     0.0],
     # [np.pi * 0.55,  0,              0,              0],
     # [np.pi * 0.7,   0.0,            np.pi / 2,      0.0],
     # [np.pi * 0.85,  np.pi / 2,      -np.pi / 2,     np.pi / 2],
-    # [np.pi,         np.pi / 2,      -np.pi / 2,     0.0],
+    [np.pi,         np.pi / 2,      -np.pi / 2,     0.0]]
     # [0.0,           np.pi / 2,      np.pi / 2,      0.0],
     # [np.pi / 2,     -np.pi / 2,     np.pi / 2,      0.0]]
 
