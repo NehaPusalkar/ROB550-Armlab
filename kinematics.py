@@ -58,7 +58,7 @@ def Transxa_Matrix(a):
     M[0][-1] = a
     return M
 
-def FK_dh(dh_params, joint_angles):
+def FK_dh(dh_params, joint_angles, link):
     """!
     @brief      Get the 4x4 transformation matrix from link to world
 
@@ -77,16 +77,10 @@ def FK_dh(dh_params, joint_angles):
 
     @return     a transformation matrix representing the pose of the desired link
     """
-    A = []
-    i = 0
-    for item in dh_params:
-        A.append(get_transform_from_dh(item[0], item[1] + joint_angles[i], item[2], item[3]))
-        i += 1
+    
+    item = dh_params[link]
+    return get_transform_from_dh(item[0], item[1] + joint_angles[i], item[2], item[3])
 
-    H = np.dot(A[0], A[1])
-    H = np.dot(H, A[2])
-    H = np.dot(H, A[3])
-    return H
 
 def get_transform_from_dh(a, alpha, d, theta):
     """!
