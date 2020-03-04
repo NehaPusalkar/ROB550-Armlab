@@ -77,9 +77,20 @@ def FK_dh(dh_params, joint_angles, link):
 
     @return     a transformation matrix representing the pose of the desired link
     """
-    
-    item = dh_params[link]
-    return get_transform_from_dh(item[0], item[1] + joint_angles[i], item[2], item[3])
+    A = []
+    i = 0
+
+    for item in dh_params:
+        if i < link:
+            A.append(get_transform_from_dh(item[0], item[1] + joint_angles[i], item[2], item[3]))
+        else:
+            break    
+        i += 1
+
+    H = np.eye(4)
+    for item in A:
+        H = np.dot(H, item)
+    return H
 
 
 def get_transform_from_dh(a, alpha, d, theta):
@@ -136,9 +147,9 @@ def get_pose_from_T(T):
     """
 
     phi = get_euler_angles_from_T(T)[1]
-    x = T[-1, 0]
-    y = T[-1, 1]
-    z = T[-1, 2]
+    x = T[0, -1]
+    y = T[1, -1]
+    z = T[2, -1]
     return np.array([x, y, z, phi])
 
 
