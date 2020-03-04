@@ -81,8 +81,8 @@ def FK_dh(dh_params, joint_angles, link):
     i = 0
 
     for item in dh_params:
-        if i < link:
-            A.append(get_transform_from_dh(item[0], item[1] + joint_angles[i], item[2], item[3]))
+        if i <= link:
+            A.append(get_transform_from_dh(item[0], item[1], item[2], item[3] + joint_angles[i]))
         else:
             break    
         i += 1
