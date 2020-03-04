@@ -106,9 +106,12 @@ def get_transform_from_dh(a, alpha, d, theta):
 
     @return     The 4x4 transform matrix.
     """
-    Ai = np.dot(Rotxalpha_Matrix(alpha), Transxa_Matrix(a))
-    Ai = np.dot(Ai, Transzd_Matrix(d)) 
-    Ai = np.dot(Ai, Rotztheta_Matrix(theta))
+    # Ai = np.dot(Rotxalpha_Matrix(alpha), Transxa_Matrix(a))
+    # Ai = np.dot(Ai, Transzd_Matrix(d)) 
+    # Ai = np.dot(Ai, Rotztheta_Matrix(theta))
+    Ai = np.dot(Rotztheta_Matrix(theta), Transzd_Matrix(d))
+    Ai = np.dot(Ai, Transxa_Matrix(a))
+    Ai = np.dot(Ai, Rotxalpha_Matrix(alpha))
     return Ai
 
 def get_euler_angles_from_T(T):
