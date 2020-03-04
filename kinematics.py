@@ -137,7 +137,10 @@ def get_euler_angles_from_T(T):
 
     return np.array([x, y, z], dtype = np.float32)
 
-def get_pose_from_T(T):
+def get_phi_from_angles(joint_angles):
+    return joint_angles[1] + joint_angles[2] + joint_angles[3]
+
+def get_pose_from_T(T, joint_angles):
     """!
     @brief      Gets the pose from T.
 
@@ -149,7 +152,7 @@ def get_pose_from_T(T):
     @return     The pose from T.
     """
 
-    phi = get_euler_angles_from_T(T)[1]
+    phi = get_phi_from_angles(joint_angles)
     x = T[0, -1]
     y = T[1, -1]
     z = T[2, -1]

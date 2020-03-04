@@ -31,7 +31,7 @@ fk_angles = [
     # [np.pi * 0.55,  0,              0,              0],
     # [np.pi * 0.7,   0.0,            np.pi / 2,      0.0],
     # [np.pi * 0.85,  np.pi / 2,      -np.pi / 2,     np.pi / 2],
-    [np.pi,         np.pi / 2,      -np.pi / 2,     0.0]]
+    [np.pi/2,         0,      np.pi / 2,     0.0]]
     # [0.0,           np.pi / 2,      np.pi / 2,      0.0],
     # [np.pi / 2,     -np.pi / 2,     np.pi / 2,      0.0]]
 
@@ -41,7 +41,7 @@ for joint_angles in fk_angles:
     print('Joint angles:', joint_angles)
     for i, _ in enumerate(joint_angles):
         # print(FK_dh(deepcopy(dh_params), joint_angles, i))
-        pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, i))
+        pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, i), joint_angles)
         print('Link {} pose: {}'.format(i, pose))
         if i == len(joint_angles) - 1:
             fk_poses.append(pose)
