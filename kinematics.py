@@ -8,6 +8,7 @@ There are some functions to start with, you may need to implement a few more
 import numpy as np
 # expm is a matrix exponential function
 from scipy.linalg import expm
+import math
 
 def clamp(angle):
     """!
@@ -22,6 +23,40 @@ def clamp(angle):
     while angle <= -np.pi:
         angle += 2 * np.pi
     return angle
+
+link = np.array([0.03953, 0.0975, 0.09879, 0]) # l1, l2, l3, l4
+offset = np.array([0, 0.03468, 0, 0]) #n1, n2, n3, n4
+
+dh_params = [[link[0], -np.pi/2, 0, -np.pi/2],
+             [],
+             [],
+             []]
+
+def Rotztheta_Matrix(theta):
+    M = np.eye(4)
+    M[0][0] = math.cos(theta)
+    M[1][1] = math.cos(theta)
+    M[0][1] = -math.sin(theta)
+    M[1][0] = math.sin(theta)
+    return M
+
+def Rotxalpha_Matrix(alpha):
+    M = np.eye(4)
+    M[2][2] = math.cos(alpha)
+    M[1][1] = math.cos(alpha)
+    M[1][2] = -math.sin(alpha)
+    M[2][1] = math.sin(alpha)
+    return M
+
+def Transzd_Matrix(d):
+    M = np.eye(4)
+    M[2][-1] = d
+    return M
+
+def Transxa_Matrix(a):
+    M = np.eye(4)
+    M[0][-1] = a
+    return M
 
 def FK_dh(dh_params, joint_angles, link):
     """!
@@ -42,7 +77,14 @@ def FK_dh(dh_params, joint_angles, link):
 
     @return     a transformation matrix representing the pose of the desired link
     """
-    return np.eye(4)
+    A = []
+    for item in dh_params:
+        A.append(get_transform_from_dh(item[0], item[1], item[2], item[3]))
+
+    H = np.dot(A[0], A[1])
+    H = np.dot(H, A[2])
+    H = np.dot(H, A[3])
+    return H
 
 def get_transform_from_dh(a, alpha, d, theta):
     """!
@@ -57,7 +99,10 @@ def get_transform_from_dh(a, alpha, d, theta):
 
     @return     The 4x4 transform matrix.
     """
-    return np.eye(4)
+    Ai = np.dot(Rotztheta_Matrix(theta), Transzd_Matrix(d))
+    Ai = np.dot(Ai, Transxa_Matrix(a))
+    Ai = np.dot(Ai, Rotxalpha_Matrix(alpha))
+    return Ai
 
 def get_euler_angles_from_T(T):
     """!
