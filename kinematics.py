@@ -27,10 +27,10 @@ def clamp(angle):
 link = np.array([0.03953, 0.0975, 0.09879, 0]) # l1, l2, l3, l4
 offset = np.array([0, 0.03468, 0, 0]) #n1, n2, n3, n4
 
-dh_params = [[link[0], -np.pi/2, 0, -np.pi/2],
-             [],
-             [],
-             []]
+dh_params = [[0, np.pi/2, link[0], np.pi/2],
+             [link[1], 0, 0, np.pi/2],
+             [link[2] + offset[1], 0, 0, -np.pi/2],
+             [0, np.pi/2, 0, np.pi/2]]
 
 def Rotztheta_Matrix(theta):
     M = np.eye(4)
@@ -58,7 +58,7 @@ def Transxa_Matrix(a):
     M[0][-1] = a
     return M
 
-def FK_dh(dh_params, joint_angles, link):
+def FK_dh(dh_params, joint_angles):
     """!
     @brief      Get the 4x4 transformation matrix from link to world
 
@@ -78,8 +78,10 @@ def FK_dh(dh_params, joint_angles, link):
     @return     a transformation matrix representing the pose of the desired link
     """
     A = []
+    i = 0
     for item in dh_params:
-        A.append(get_transform_from_dh(item[0], item[1], item[2], item[3]))
+        A.append(get_transform_from_dh(item[0], item[1] + joint_angles[i], item[2], item[3]))
+        i += 1
 
     H = np.dot(A[0], A[1])
     H = np.dot(H, A[2])
@@ -114,7 +116,18 @@ def get_euler_angles_from_T(T):
 
     @return     The euler angles from T.
     """
-    return np.array([0, 0, 0],dtype=np.float32)
+    sy = math.sqrt(T[0,0] * T[0,0] +  T[1,0] * T[1,0])
+    singular = sy < 1e-6
+    if not singular:
+        x = math.atan2(T[2,1] , T[2,2])
+        y = math.atan2(-T[2,0], sy)
+        z = math.atan2(T[1,0], T[0,0])
+    else :
+        x = math.atan2(-T[1,2], T[1,1])
+        y = math.atan2(-T[2,0], sy)
+        z = 0
+
+    return np.array([x, y, z], dtype = np.float32)
 
 def get_pose_from_T(T):
     """!
@@ -127,7 +140,12 @@ def get_pose_from_T(T):
 
     @return     The pose from T.
     """
-    return np.array([0, 0, 0, 0])
+
+    phi = get_euler_angles_from_T(T)[1]
+    x = T[-1, 0]
+    y = T[-1, 1]
+    z = T[-1, 2]
+    return np.array([x, y, z, phi])
 
 
 def FK_pox(joint_angles):
