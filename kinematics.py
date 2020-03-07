@@ -24,7 +24,7 @@ def clamp(angle):
         angle += 2 * np.pi
     return angle
 
-link = np.array([0.03953, 0.0975, 0.09879, 0]) # l1, l2, l3, l4
+link = np.array([0.03953, 0.0975, 0.09879, 0.1]) # l1, l2, l3, l4
 offset = np.array([0.07, 0.03468, 0, 0]) #base, n2, n3, n4
 a = math.atan2(link[1], offset[1])
 dh_params = [[0, np.pi/2, link[0]+offset[0], np.pi/2],
@@ -187,6 +187,13 @@ def to_s_matrix(w,v):
     """
     pass
 
+def map_angle(angle):
+    if(angle > math.pi):
+        return angle - 2*math.pi*int(((angle+math.pi)/math.pi)/2)
+    elif(angle < -math.pi):
+        return angle - 2*math.pi*int(((angle-math.pi)/math.pi)/2)
+    else:
+        return angle
 
 def IK_geometric(dh_params, pose):
     """!
@@ -200,4 +207,32 @@ def IK_geometric(dh_params, pose):
     @return     All four possible joint configurations in a numpy array 4x4 where each row is one possible joint
                 configuration
     """
-    return np.zeros((4,4))
+    x = pose[0]
+    y = pose[1]
+    z = pose[2]
+    phi = pose[3]
+
+    base = dh_params[0][2]
+    l1 = dh_params[1][0]
+    l2 = dh_params[2][0]
+    # l3 = 0.1
+    alpha = math.pi/2 - dh_params[1][3]
+    d = math.sqrt(x**2 + y**2)
+    #solution 1&2
+    theta_0_0 = -map_angle(math.pi/2 - math.atan2(y, x))
+    
+    beta = math.acos(-((d**2 + (base-z)**2 - l1**2 - l2**2)/l1/l2/2))
+    theta_2_0 = beta - math.pi/2 - alpha
+    theta_1_0 = math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    theta_3_0 = phi - theta_1_0 - theta_2_0
+
+    theta_2_1 = (math.pi*2 - beta) - math.pi/2 - alpha
+    theta_1_1 = -math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    theta_3_1 = phi - theta_1_1 - theta_2_1
+    #solution 3&4
+    theta_0_1 = -map_angle(3*math.pi/2 - math.atan2(y, x))
+
+    return np.array([[theta_0_0, theta_1_0, theta_2_0, theta_3_0], \
+                     [theta_0_0, theta_1_1, theta_2_1, theta_3_1], \
+                     [theta_0_1, theta_1_0, theta_2_0, theta_3_0], \
+                     [theta_0_1, theta_1_1, theta_2_1, theta_3_1]])
