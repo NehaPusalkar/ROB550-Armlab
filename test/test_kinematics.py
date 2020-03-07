@@ -30,9 +30,9 @@ fk_angles = [
     # [np.pi * 0.4,   np.pi / 2,      -np.pi / 2,     0.0],
     # [np.pi * 0.55,  0,              0,              0],
     # [np.pi * 0.7,   0.0,            np.pi / 2,      0.0],
-     [np.pi * 0.85,  np.pi / 2,      -np.pi / 2,     np.pi / 2]]
-    # [np.pi/2,         0,      np.pi / 2,     0.0]]
-    # [0.0,           np.pi / 2,      np.pi / 2,      0.0],
+     [np.pi * 0.85,  np.pi / 2,      -np.pi / 2,     np.pi / 2],
+     [np.pi/2,         0,      np.pi / 2,     0.0],
+     [0.0,           np.pi / 2,      np.pi / 2,      0.0]]
     # [np.pi / 2,     -np.pi / 2,     np.pi / 2,      0.0]]
 
 print('Test FK')

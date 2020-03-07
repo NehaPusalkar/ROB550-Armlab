@@ -219,7 +219,7 @@ def IK_geometric(dh_params, pose):
     alpha = math.pi/2 - dh_params[1][3]
     d = math.sqrt(x**2 + y**2)
     #solution 1&2
-    theta_0_0 = -map_angle(math.pi/2 - math.atan2(y, x))
+    theta_0_0 = map_angle(math.pi/2 + math.atan2(y, x))
     
     beta = math.acos(-((d**2 + (base-z)**2 - l1**2 - l2**2)/l1/l2/2))
     theta_2_0 = beta - math.pi/2 - alpha
@@ -230,9 +230,18 @@ def IK_geometric(dh_params, pose):
     theta_1_1 = -math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
     theta_3_1 = phi - theta_1_1 - theta_2_1
     #solution 3&4
-    theta_0_1 = -map_angle(3*math.pi/2 - math.atan2(y, x))
+    theta_0_1 = map_angle(3*math.pi/2 + math.atan2(y, x))
+
+    beta = math.acos(-((d**2 + (base-z)**2 - l1**2 - l2**2)/l1/l2/2))
+    theta_2_2 = beta - math.pi/2 - alpha
+    theta_1_2 = math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    theta_3_2 = phi - theta_1_0 - theta_2_0
+
+    theta_2_3 = (math.pi*2 - beta) - math.pi/2 - alpha
+    theta_1_3 = -math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    theta_3_3 = phi - theta_1_1 - theta_2_1
 
     return np.array([[theta_0_0, theta_1_0, theta_2_0, theta_3_0], \
                      [theta_0_0, theta_1_1, theta_2_1, theta_3_1], \
-                     [theta_0_1, theta_1_0, theta_2_0, theta_3_0], \
-                     [theta_0_1, theta_1_1, theta_2_1, theta_3_1]])
+                     [theta_0_1, theta_1_2, theta_2_2, theta_3_2], \
+                     [theta_0_1, theta_1_3, theta_2_3, theta_3_3]])
