@@ -84,7 +84,7 @@ def FK_dh(dh_params, joint_angles, link):
         if i <= link:
             A.append(get_transform_from_dh(item[0], item[1], item[2], item[3] + joint_angles[i]))
         else:
-            break    
+            break
         i += 1
 
     H = np.eye(4)
@@ -107,7 +107,7 @@ def get_transform_from_dh(a, alpha, d, theta):
     @return     The 4x4 transform matrix.
     """
     # Ai = np.dot(Rotxalpha_Matrix(alpha), Transxa_Matrix(a))
-    # Ai = np.dot(Ai, Transzd_Matrix(d)) 
+    # Ai = np.dot(Ai, Transzd_Matrix(d))
     # Ai = np.dot(Ai, Rotztheta_Matrix(theta))
     Ai = np.dot(Rotztheta_Matrix(theta), Transzd_Matrix(d))
     Ai = np.dot(Ai, Transxa_Matrix(a))
@@ -211,35 +211,69 @@ def IK_geometric(dh_params, pose):
     y = pose[1]
     z = pose[2]
     phi = pose[3]
+    #
+    # base = dh_params[0][2]
+    # l1 = dh_params[1][0]
+    # l2 = dh_params[2][0]
+    # # l3 = 0.1
+    # alpha = math.pi/2 - dh_params[1][3]
+    # d = math.sqrt(x**2 + y**2)
+    # #solution 1&2
+    # theta_0_0 = map_angle(math.pi/2 + math.atan2(y, x))
+    #
+    # beta = math.acos(-((d**2 + (base-z)**2 - l1**2 - l2**2)/l1/l2/2))
+    # theta_2_0 = beta - math.pi/2 - alpha
+    # theta_1_0 = math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    # theta_3_0 = phi - theta_1_0 - theta_2_0
+    #
+    # theta_2_1 = (math.pi*2 - beta) - math.pi/2 - alpha
+    # theta_1_1 = -math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    # theta_3_1 = phi - theta_1_1 - theta_2_1
+    # #solution 3&4
+    # theta_0_1 = map_angle(3*math.pi/2 + math.atan2(y, x))
+    #
+    # beta = math.acos(-((d**2 + (base-z)**2 - l1**2 - l2**2)/l1/l2/2))
+    # theta_2_2 = beta - math.pi/2 - alpha
+    # theta_1_2 = math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    # theta_3_2 = phi - theta_1_0 - theta_2_0
+    #
+    # theta_2_3 = (math.pi*2 - beta) - math.pi/2 - alpha
+    # theta_1_3 = -math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    # theta_3_3 = phi - theta_1_1 - theta_2_1
+
+
 
     base = dh_params[0][2]
+    d = math.sqrt(x**2 + y**2)
+    alpha = math.pi/2 - dh_params[1][3]
+    l = math.sqrt((base - z)**2 + d**2)
     l1 = dh_params[1][0]
     l2 = dh_params[2][0]
-    # l3 = 0.1
-    alpha = math.pi/2 - dh_params[1][3]
-    d = math.sqrt(x**2 + y**2)
+    gamma = math.atan2(d,(base-z))
+    psi = math.acos((l**2 + l1**2 - l2**2)/(2*l*l1))
+    beta = math.acos((l1**2 + l2**2 - l**2)/(2*l1*l2))
+
     #solution 1&2
-    theta_0_0 = map_angle(math.pi/2 + math.atan2(y, x))
-    
-    beta = math.acos(-((d**2 + (base-z)**2 - l1**2 - l2**2)/l1/l2/2))
-    theta_2_0 = beta - math.pi/2 - alpha
-    theta_1_0 = math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    theta_0_0 = - math.atan2(x, y)
+    theta_2_0 = -(math.pi/2 + alpha - beta)
+    theta_1_0 = -(math.pi - alpha - psi - gamma)
     theta_3_0 = phi - theta_1_0 - theta_2_0
 
     theta_2_1 = (math.pi*2 - beta) - math.pi/2 - alpha
-    theta_1_1 = -math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    #theta_1_1 = -math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
+    theta_1_1 = -math.pi + alpha + gamma - psi
     theta_3_1 = phi - theta_1_1 - theta_2_1
     #solution 3&4
-    theta_0_1 = map_angle(3*math.pi/2 + math.atan2(y, x))
+    theta_0_1 = map_angle(math.pi - math.atan2(x, y))
 
-    beta = math.acos(-((d**2 + (base-z)**2 - l1**2 - l2**2)/l1/l2/2))
-    theta_2_2 = beta - math.pi/2 - alpha
-    theta_1_2 = math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
-    theta_3_2 = phi - theta_1_0 - theta_2_0
+    #beta = math.acos(-((d**2 + (base-z)**2 - l1**2 - l2**2)/l1/l2/2))
+    theta_2_2 = math.pi*2 - beta - alpha - math.pi/2
+    theta_1_2 =  math.pi + alpha - gamma - psi
+    theta_3_2 = phi - theta_1_2 - theta_2_2
 
-    theta_2_3 = (math.pi*2 - beta) - math.pi/2 - alpha
-    theta_1_3 = -math.atan2(l2*math.sin(math.pi - beta), l1 + l2 * math.cos(math.pi - beta)) - math.atan2(base-z, d) - math.pi/2 + alpha
-    theta_3_3 = phi - theta_1_1 - theta_2_1
+    theta_2_3 = -(math.pi + alpha - math.pi/2 - beta)
+    theta_1_3 = math.pi + alpha + psi - gamma
+    theta_3_3 = phi - theta_1_3 - theta_2_3
 
     return np.array([[theta_0_0, theta_1_0, theta_2_0, theta_3_0], \
                      [theta_0_0, theta_1_1, theta_2_1, theta_3_1], \
