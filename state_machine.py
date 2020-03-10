@@ -8,6 +8,8 @@ import csv
 import cv2
 from trajectory_planner import TrajectoryPlanner
 from apriltag import apriltag
+from kinematics import *
+from copy import deepcopy
 
 class StateMachine():
     """!
@@ -98,6 +100,9 @@ class StateMachine():
 
         if self.next_state == "clear_record":
             self.clear_record()
+            
+        if self.next_state == "test_ik":
+            self.test_ik()
 
     """Functions run for each state"""
 
@@ -186,7 +191,7 @@ class StateMachine():
         print("Detection Done!")
         detected_points = []
         for detec in detections:
-            if(detec['id'] in range(2,8)):
+            if(detec['id'] in range(0,5)):
                 detected_points.append(detec['center'])
         '''
         i = 0
@@ -219,7 +224,7 @@ class StateMachine():
         '''
         cam_matrix, coeff, affine_matrix = self.kinect.loadCameraCalibration()
         self.kinect.depth2rgb_affine = affine_matrix
-        real = np.array([[-570/2, 0, 75], [-570/2, -570/2, 0],[-570/2, 570/2, 0],[570/2, 570/2, 0],[570/2, -570/2, 0]], dtype=np.float32)
+        real = np.array([[-565/2, 0, 75], [-565/2, -565/2, 0],[-565/2, 565/2, 0],[565/2, 565/2, 0],[565/2, -565/2, 0]], dtype=np.float32)
         ##TODO check [x,y] or [y,x]
         print([0.5, 0.46875]*np.array(detected_points))
         ex_matrix = cv2.solvePnP(real, [0.5, 0.46875]*np.array(detected_points, dtype=np.float32), cam_matrix, coeff)
@@ -231,7 +236,6 @@ class StateMachine():
         self.kinect.ex_matrix = np.concatenate((R, t), axis=1)
         self.kinect.cam_matrix_inv = cam_matrix_inv
         print(self.kinect.ex_matrix)
-        print(self.kinect.cam_matrix_inv)
         self.kinect.kinectCalibrated = True
         self.status_message = "Calibration - Completed Calibration"
         time.sleep(1)
@@ -249,6 +253,62 @@ class StateMachine():
                 xyz_in_cam_h = np.append(xyz_in_cam, 1)
                 xyz_in_world = np.dot(self.kinect.ex_matrix, xyz_in_cam_h)
                 print(xyz_in_world)
+
+    
+    def test_ik(self):
+        vclamp = np.vectorize(clamp)
+        self.current_state = "test_ik"
+        self.next_state = "idle"
+        while(not self.next_state=='estop'):
+            if(self.kinect.new_click == True):
+                rgb_click_point = self.kinect.last_click.copy()
+                self.kinect.new_click = False
+                xyz = self.kinect.get_xyz_in_world(rgb_click_point)
+                xyz = np.array(xyz)/1000
+                xyz[2] = xyz[2] + 0.150
+                x, y = xyz[0], xyz[1]
+
+                phi = - math.pi/2
+                xyz = np.concatenate((xyz, [phi]), axis = 0)
+                print("xyz:" + str(xyz))
+                options = IK_geometric(dh_params, xyz)
+                choice = 0
+                for i, joint_angles in enumerate(options):
+                    pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
+                    test_xyz = deepcopy(xyz)
+                    test_xyz[2] -= 0.15
+                    compare = vclamp(test_xyz - xyz)
+                    if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
+                        choice = format(i)
+                
+                # else:
+                #     xyz[2] -= 0.120
+                #     xyz[0] *= (d-0.15) / d
+                #     xyz[1] *= (d-0.15) / d
+                #     phi = 0
+                #     xyz = np.concatenate((xyz, [phi]), axis = 0)
+                #     print("xyz:" + str(xyz))
+                #     options = IK_geometric(dh_params, xyz)
+                #     choice = 0
+                #     for i, joint_angles in enumerate(options):
+                #         # print('Option {}: {}'.format(i, joint_angles))
+                #         pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
+                #         test_xyz = deepcopy(xyz)
+                #         test_xyz[2] -= 0.15
+                #         compare = vclamp(test_xyz - xyz)
+                #         if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
+                #             # print('Option {} matches angles used in FK'.format(i))
+                #             choice = format(i)
+
+                
+                
+                print(options[choice])
+                tp = TrajectoryPlanner(self.rexarm)
+                tp.set_initial_wp()
+                tp.set_final_wp(options[choice])
+                tp.go(5)
+                if(self.next_state == "estop"):
+                    break
 
     def clear_record(self):
         self.status_message = "State: Clearing Record ..."

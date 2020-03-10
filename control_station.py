@@ -200,6 +200,8 @@ class Gui(QMainWindow):
         self.ui.btnUser6.clicked.connect(partial(nxt_if_arm_init, 'execute_tp'))
         self.ui.btnUser7.setText("Check Cali")
         self.ui.btnUser7.clicked.connect(partial(nxt_if_arm_init, 'check_cali'))
+        self.ui.btnUser8.setText("Test IK")
+        self.ui.btnUser8.clicked.connect(partial(nxt_if_arm_init, 'test_ik'))
 
         # Sliders
         for sldr in self.joint_sliders:
@@ -343,6 +345,14 @@ class Gui(QMainWindow):
             xyz = self.kinect.get_xyz_in_world([pt.x(),pt.y()])
             self.ui.rdoutMousePixels.setText("("+str(pt.x())+","+str(pt.y())+")")
             self.ui.rdoutMouseWorld.setText("("+str(xyz[0])+","+str(xyz[1])+","+str(xyz[2])+")")
+        elif self.kinect.VideoFrame.any() != 0:
+            pt = mouse_event.pos()
+            video_frame = cv2.resize(self.kinect.VideoFrame,(640, 480))
+            hsv_frame = cv2.cvtColor(video_frame, cv2.COLOR_RGB2HSV)
+            H = hsv_frame[pt.y()][pt.x()][0]
+            S = hsv_frame[pt.y()][pt.x()][1]
+            V = hsv_frame[pt.y()][pt.x()][2]
+            self.ui.rdoutMousePixels.setText("("+str(H)+","+str(S)+","+str(V)+")")
 
     def calibrateMousePress(self, mouse_event):
         """!

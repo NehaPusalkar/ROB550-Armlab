@@ -85,8 +85,7 @@ class Kinect():
         """!
         @brief      Process a video frame
         """
-        cv2.drawContours(self.VideoFrame,self.block_contours,-1,(255,0,255),3)
-
+        self.block_and_color_detect()
 
     def captureDepthFrame(self):
         """!
@@ -187,8 +186,6 @@ class Kinect():
         depth = 0.1236 * np.tan(depth/2842.5 + 1.1863) * 1000
         xyz_in_cam = depth * np.dot(self.cam_matrix_inv, np.append(rgb_click_point, 1))
         xyz_in_world = xyz_in_cam.reshape((3,1)) - self.ex_matrix[:,3].reshape((3,1))
-        print(xyz_in_cam.shape)
-        print(xyz_in_world.shape)
         xyz_in_world = np.dot(np.linalg.inv(self.ex_matrix[0:3, 0:3]), xyz_in_world)
         return list(xyz_in_world.reshape(3,))
 
@@ -226,40 +223,6 @@ class Kinect():
                     TODO: Implement your block detector here. You will need to locate blocks in 3D space and put their XYZ
                     locations in self.block_detections
         """
-        image = self.VideoFrame
-        blur = cv2.GaussianBlur(image,(5,5),5)
-        cv2.namedWindow("first_image",cv2.WINDOW_NORMAL)
-        cv2.imshow("first image",image)
-# convert to HSV
-
-        hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
-        # cv2.imshow("hsv",hsv)
-        # set limits on values for that color
-        lower_val =np.array([70, 120, 0])
-        upper_val = np.array([255,255,5])
-
-        lower_red = np.array([70,120,170])
-        upper_red = np.array([255,255,180])
-
-        mask1 = cv2.inRange(hsv,lower_val,upper_val)
-        mask2 = cv2.inRange(hsv,lower_red,upper_red)
-
-        mask = mask1 + mask2
-
-        
-        output_img = image.copy()
-        output_img[np.where(mask==0)] = 0
-
-        output_hsv = hsv.copy()
-        output_hsv[np.where(mask==0)] = 0
-        cv2.imshow("image",cv2.WINDOW_NORMAL)
-        cv2.imshow("image",output_img)
-        cv2.namedWindow("hsv_image", cv2.WINDOW_NORMAL)
-        cv2.imshow("hsv_image",output_hsv)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
-
-       
 
     def detectBlocksInDepthImage(self):
         """!
@@ -279,19 +242,21 @@ class Kinect():
          'orange': [8,18,200,255,90,150], 'purple':[140,170,100,170,45,75], 'pink': [170,180,180,250,125,165],
          'yellow' : [20,30,200,255,100,255], 'black': [5,30,100,210,20,60]}
 
-        colors_center = {'red': [4,227.5,95], 'green' : [55,177.5,65], 'blue' : [115,150,75],
-                        'orange' : [13,227.5,120], 'purple' :[155,135,60], 'pink': [175,215,145],
-                        'yellow' : [25,227.5,177.5], 'black': [17.5,155,40]}
+        colors_center = {'red': [2,227.5,85],'red2':[178, 227.5, 85], 'green' : [55,177.5,55], 'blue' : [115,150,75],
+                        'orange' : [10,250,105], 'purple' :[155,135,60], 'pink': [175,215,145],
+                        'yellow' : [25,227.5,145], 'black': [17.5,155,40]}
 
         #frame =cv2.imread("./data/rgb_image.png",cv2.IMREAD_UNCHANGED)
+        #depth_frame = cv2.imread("./data/raw_depth.png",0).astype(np.uint8)
         frame = cv2.cvtColor(self.VideoFrame, cv2.COLOR_RGB2BGR)
         frame = cv2.medianBlur(frame, 5)
-        cv2.namedWindow("first image", cv2.WINDOW_NORMAL)
-        cv2.imshow("first image",frame)
-        video_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        video_frame = cv2.resize(video_frame, (640, 480))
-        depth_frame = cv2.cvtColor(self.DepthFrameRGB, cv2.COLOR_RGB2GRAY)
-        #depth_frame = cv2.imread("./data/raw_depth.png",0).astype(np.uint8)
+        frame = cv2.GaussianBlur(frame, (5,5), 0)
+        video_frame = cv2.resize(frame, (640, 480))
+        video_frame = cv2.cvtColor(video_frame, cv2.COLOR_BGR2HSV)
+        if(self.DepthFrameRaw.size != 0):
+            depth_frame = self.DepthFrameRaw.astype(np.uint8)
+        else:
+            return
         depth_frame = cv2.medianBlur(depth_frame, 3)
         th1 = cv2.inRange(depth_frame, 158, 200)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
@@ -299,11 +264,13 @@ class Kinect():
         th1 = cv2.dilate(th1, kernel, iterations=1)
         binary = cv2.Canny(th1, 10, 90)
         image, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        canvas = np.zeros((480,640,3)).astype(np.uint8)
-        canvas[...,0] = depth_frame
-        canvas[...,1] = depth_frame
-        canvas[...,2] = depth_frame
+        # canvas = np.zeros((480,640,3)).astype(np.uint8)
+        # canvas[...,0] = depth_frame
+        # canvas[...,1] = depth_frame
+        # canvas[...,2] = depth_frame
         block_center = []
+        affine_matrix = np.array([[ 9.29346844e-1,  -3.23494980e-03,   11.2347976],
+                                 [1.48233033e-03,   8.74361534e-01,   31.8750435]])
         if(len(contours)!=0):
             for contour in contours:
                 #cv2.drawContours(canvas, contours, -1, (255,0,255), 3)
@@ -323,10 +290,13 @@ class Kinect():
                             break
                     if(not overlap and cv2.contourArea(approx) > 200):
                         block_center.append(cur_center)
-                        cv2.drawContours(canvas, [box], -1, (255,0,255), 2)
-
-        affine_matrix = np.array([[ 9.29346844e-1,  -3.23494980e-03,   11.2347976],
-                                [  1.48233033e-03,   8.74361534e-01,   31.8750435]])
+                        if self.kinectCalibrated:
+                            box_in_rgb = box
+                        else:
+                            box_h = np.concatenate((box.T, np.ones([1, 4])), axis=0)
+                            box_in_rgb = np.dot(affine_matrix, box_h).T
+                        box_in_rgb = ([2, 2.1333]*box_in_rgb[:][0:4]).astype(int)
+                        cv2.drawContours(self.VideoFrame, [box_in_rgb], -1, (255,0,255), 2)
 
         num = len(block_center)
         block_center = np.array(block_center).reshape(num,2).T
@@ -334,27 +304,25 @@ class Kinect():
         block_center_in_rgb = np.dot(affine_matrix, block_center_h).T
         font = cv2.FONT_HERSHEY_SIMPLEX
         for center in block_center_in_rgb:
-            min_loss = 2000
+            min_loss = 200000
             x=int(center[0])
             y=int(center[1])
             h = int(video_frame[y][x][0])
             s = int(video_frame[y][x][1])
             v = int(video_frame[y][x][2])
-            for key in colors:
-                # if((h>=0 and h<=10) or (h>=165 and h<=180) and (key == 'red' or key == 'pink' or key == 'orange')):
-                #         h_diff = abs(abs(h-90) - abs(colors_center[key][0]-90))
-                # else:
+            #print("=======")
+            for key in colors_center:
                 h_diff = abs(h - colors_center[key][0])
                 s_diff = abs(s - colors_center[key][1])
                 v_diff = abs(v - colors_center[key][2])
                 
-                loss = math.sqrt(0.9 * (h_diff**2) + 0.05 * (s_diff**2) + 0.05 * (v_diff**2)) 
-            
+                loss = math.sqrt(0.8 * (h_diff**2) + 0.05 * (s_diff**2) + 0.15 * (v_diff**2)) 
+                #loss = math.sqrt(1 * (h_diff**2) + 1 * (s_diff**2) + 1 * (v_diff**2)) 
+                #print(key+':'+str(loss))
                 if (loss < min_loss):
                     min_loss = loss
                     color_detected = key
-            #output_h = "H:{}".format(int(video_frame[y][x][0]*2))
             output_h = "{}".format(color_detected)
-            cv2.putText(canvas, output_h, (x, y), font, 0.5, (0, 0, 0))
-        cv2.namedWindow("image", cv2.WINDOW_NORMAL)
-        cv2.imshow("image",canvas)
+            cv2.putText(self.VideoFrame, output_h, (2*x, int(2.1333*y) - 20), font, 1, (0, 0, 0))
+        # cv2.namedWindow("image", cv2.WINDOW_NORMAL)
+        # cv2.imshow("image",canvas)
