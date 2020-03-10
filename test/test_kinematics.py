@@ -25,6 +25,7 @@ dh_params = [[0, np.pi/2, link[0]+offset[0], np.pi/2],
 
 fk_angles = [
     [0.0,           0.0,            0.0,            0.0],
+<<<<<<< HEAD
     # [np.pi * 0.1,   0.0,            np.pi / 2,      0.0],
     # [np.pi * 0.25,  np.pi / 2,      -np.pi / 2,     np.pi / 2],
     # [np.pi * 0.4,   np.pi / 2,      -np.pi / 2,     0.0],
@@ -34,6 +35,17 @@ fk_angles = [
     #  [np.pi/2,         0,      np.pi / 2,     0.0],
      [0.0,           np.pi / 2,      np.pi / 2,      0.0]]
     # [np.pi / 2,     -np.pi / 2,     np.pi / 2,      0.0]]
+=======
+    [np.pi * 0.1,   0.0,            np.pi / 2,      0.0],
+    [np.pi * 0.25,  np.pi / 2,      -np.pi / 2,     np.pi / 2],
+    [np.pi * 0.4,   np.pi / 2,      -np.pi / 2,     0.0],
+    [np.pi * 0.55,  0,              0,              0],
+    [np.pi * 0.7,   0.0,            np.pi / 2,      0.0],
+    [np.pi * 0.85,  np.pi / 2,      -np.pi / 2,     np.pi / 2],
+    [np.pi/2,         0,      np.pi / 2,     0.0],
+    [0.0,           np.pi / 2,      np.pi / 2,      0.0],
+    [np.pi / 2,     -np.pi / 2,     np.pi / 2,      0.0]]
+>>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
 
 print('Test FK')
 fk_poses = []

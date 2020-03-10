@@ -48,9 +48,12 @@ class TrajectoryPlanner():
         """
         #T = self.calc_time_from_waypoints(self.initial_wp, self.final_wp, max_speed)
         plan, plan_s = self.generate_quintic_spline(self.initial_wp, self.final_wp, max_speed)
+<<<<<<< HEAD
         #print("--herhe--------\n")
         #print(len(plan))
         #print("--herhe--------\n")
+=======
+>>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
         self.execute_plan(plan, plan_s)
         pass
 
@@ -58,7 +61,7 @@ class TrajectoryPlanner():
         """!
         @brief      TODO Stop the trajectory planner
         """
-
+        self.rexarm.disable_torque()
         pass
 
     def generate_quintic_spline(self, initial_wp, final_wp, max_speed):
@@ -78,9 +81,12 @@ class TrajectoryPlanner():
         res = np.dot(cons1_inv, np.array([[dq_max],[0],[0]]))
         cons2 = np.array([0.75, 0.5, 5/16])
         T = (np.dot(cons2, res) / max_speed) * 1.5
+<<<<<<< HEAD
         #print("----------")
         #print(T)
         #Generate quintic spline
+=======
+>>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
         H = np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],\
             [1,T,T**2,T**3,T**4,T**5],[0,1,2*T,3*T**2,4*T**3,5*T**4],[0,0,1,6*T,12*T**2,20*T**3]])
         t = np.arange(0,T,self.dt)
@@ -97,8 +103,6 @@ class TrajectoryPlanner():
         output = np.transpose(np.array(output))
         output_s = np.transpose(np.array(output_s))
         return output, output_s
-
-
 
     def calc_time_from_waypoints(self, initial_wp, final_wp, max_speed):
         """!

@@ -280,6 +280,7 @@ class Gui(QMainWindow):
     """ Other callback functions attached to GUI elements"""
 
     def estop(self):
+        self.rexarm.disable_torque()
         self.sm.set_next_state("estop")
 
     def sliderChange(self):

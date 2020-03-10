@@ -9,7 +9,10 @@ import cv2
 from trajectory_planner import TrajectoryPlanner
 from apriltag import apriltag
 from kinematics import *
+<<<<<<< HEAD
 from copy import deepcopy
+=======
+>>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
 
 class StateMachine():
     """!
@@ -155,7 +158,6 @@ class StateMachine():
             full_wp = [0.0] * self.rexarm.num_joints
             full_wp[0:len(wp)] = wp
             # waypoints.append(full_wp)
-            # TODO: Send the waypoints to the trajectory planner and break if estop
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(full_wp)
@@ -169,12 +171,6 @@ class StateMachine():
         """
         self.current_state = "calibrate"
         self.next_state = "idle"
-
-        location_strings = ["lower left corner of board",
-                            "upper left corner of board",
-                            "upper right corner of board",
-                            "lower right corner of board",
-                            "center of shoulder motor"]
 
         detector = apriltag("tagStandard41h12")
         image = self.kinect.VideoFrame #1280X960
@@ -193,40 +189,15 @@ class StateMachine():
         for detec in detections:
             if(detec['id'] in range(0,5)):
                 detected_points.append(detec['center'])
-        '''
-        i = 0
-        for j in range(10):
-            #self.status_message = "Calibration - Click %s in RGB image" % location_strings[j]
-            while (i <= j):
-                if(self.kinect.new_click == True):
-                    self.kinect.rgb_click_points[i] = self.kinect.last_click.copy()
-                    i = i + 1
-                    self.kinect.new_click = False
-        self.status_message = "Calibration Depth"
-        i = 0
-        depth = []
-        for j in range(10):
-            #self.status_message = "Calibration - Click %s in depth image" % location_strings[j]
-            while (i <= j):
-                if(self.kinect.new_click == True):
-                    self.kinect.depth_click_points[i] = self.kinect.last_click.copy()
-                    depth.append(self.kinect.DepthFrameRaw[self.kinect.depth_click_points[i][1], self.kinect.depth_click_points[i][0]])
-                    i = i + 1
-                    self.kinect.new_click = False
-        
-        """TODO Perform camera calibration here"""
-        print("camera calibration now\n")
-        self.kinect.depth2rgb_affine = self.kinect.getAffineTransform(self.kinect.rgb_click_points, self.kinect.depth_click_points)
-        self.kinect.kinectCalibrated = True
-
-        print(self.kinect.depth2rgb_affine)
-        depth = 0.1236 * np.tan(np.array(depth)/2842.5 + 1.1863)
-        '''
         cam_matrix, coeff, affine_matrix = self.kinect.loadCameraCalibration()
         self.kinect.depth2rgb_affine = affine_matrix
         real = np.array([[-565/2, 0, 75], [-565/2, -565/2, 0],[-565/2, 565/2, 0],[565/2, 565/2, 0],[565/2, -565/2, 0]], dtype=np.float32)
+<<<<<<< HEAD
         ##TODO check [x,y] or [y,x]
+=======
+>>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
         print([0.5, 0.46875]*np.array(detected_points))
+        #TODO add some initial guess here and try P3P
         ex_matrix = cv2.solvePnP(real, [0.5, 0.46875]*np.array(detected_points, dtype=np.float32), cam_matrix, coeff)
         R = cv2.Rodrigues(ex_matrix[1])[0]
         t = ex_matrix[2]
@@ -254,11 +225,18 @@ class StateMachine():
                 xyz_in_world = np.dot(self.kinect.ex_matrix, xyz_in_cam_h)
                 print(xyz_in_world)
 
+<<<<<<< HEAD
     
     def test_ik(self):
         vclamp = np.vectorize(clamp)
         self.current_state = "test_ik"
         self.next_state = "idle"
+=======
+    def test_ik(self):
+        self.current_state = "test_ik"
+        self.next_state = "idle"
+        self.status_message = "State: Testing IK..."
+>>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
         while(not self.next_state=='estop'):
             if(self.kinect.new_click == True):
                 rgb_click_point = self.kinect.last_click.copy()
@@ -307,8 +285,28 @@ class StateMachine():
                 tp.set_initial_wp()
                 tp.set_final_wp(options[choice])
                 tp.go(5)
-                if(self.next_state == "estop"):
-                    break
+
+
+                # if(self.next_state == "estop"):
+                #     break
+                # d = math.sqrt(xyz[0]**2 + xyz[1]**2)
+                # alpha = math.atan2(xyz[1],xyz[0])
+                # #compare l and l1+l2
+                # if(d > 0.195):
+                #     xyz[0] = (d - 0.150)*math.cos(alpha)
+                #     xyz[1] = (d - 0.150)*math.sin(alpha)
+                #     phi = 0
+                # else:
+                #     xyz[2] = xyz[2] + 0.150
+                #     phi = -math.pi/2
+                # xyz = np.concatenate((xyz, [phi]), axis = 0)
+                # print("xyz:" + str(xyz))
+                # options = IK_geometric(dh_params, xyz)
+                # print(options[0])
+                # tp = TrajectoryPlanner(self.rexarm)
+                # tp.set_initial_wp()
+                # tp.set_final_wp(options[0])
+                # tp.go(5)
 
     def clear_record(self):
         self.status_message = "State: Clearing Record ..."
@@ -365,7 +363,6 @@ class StateMachine():
                 if self.next_state == "estop":
                     break
                 time.sleep(1)
-
 
     def initialize_rexarm(self):
         """!
