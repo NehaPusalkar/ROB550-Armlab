@@ -190,7 +190,6 @@ def IK_geometric(dh_params, pose):
     l2 = dh_params[2][0]
     gamma = math.atan2(d,(base-z))
     print(l)
-<<<<<<< HEAD
     acosvalue = (l**2 + l1**2 - l2**2)/(2*l*l1)
     print(acosvalue)
     while d >= 0.2 or acosvalue > 1 or acosvalue < -1: # while here may cause problem (reclick to fix)
@@ -208,9 +207,6 @@ def IK_geometric(dh_params, pose):
         acosvalue = (l**2 + l1**2 - l2**2)/(2*l*l1)
 
 
-=======
-    print((l**2 + l1**2 - l2**2)/(2*l*l1))
->>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
     psi = math.acos((l**2 + l1**2 - l2**2)/(2*l*l1))
     beta = math.acos((l1**2 + l2**2 - l**2)/(2*l1*l2))
 

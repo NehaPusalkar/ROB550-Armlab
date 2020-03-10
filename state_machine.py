@@ -192,10 +192,7 @@ class StateMachine():
         cam_matrix, coeff, affine_matrix = self.kinect.loadCameraCalibration()
         self.kinect.depth2rgb_affine = affine_matrix
         real = np.array([[-565/2, 0, 75], [-565/2, -565/2, 0],[-565/2, 565/2, 0],[565/2, 565/2, 0],[565/2, -565/2, 0]], dtype=np.float32)
-<<<<<<< HEAD
         ##TODO check [x,y] or [y,x]
-=======
->>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
         print([0.5, 0.46875]*np.array(detected_points))
         #TODO add some initial guess here and try P3P
         ex_matrix = cv2.solvePnP(real, [0.5, 0.46875]*np.array(detected_points, dtype=np.float32), cam_matrix, coeff)
@@ -225,18 +222,12 @@ class StateMachine():
                 xyz_in_world = np.dot(self.kinect.ex_matrix, xyz_in_cam_h)
                 print(xyz_in_world)
 
-<<<<<<< HEAD
     
     def test_ik(self):
         vclamp = np.vectorize(clamp)
         self.current_state = "test_ik"
         self.next_state = "idle"
-=======
-    def test_ik(self):
-        self.current_state = "test_ik"
-        self.next_state = "idle"
         self.status_message = "State: Testing IK..."
->>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
         while(not self.next_state=='estop'):
             if(self.kinect.new_click == True):
                 rgb_click_point = self.kinect.last_click.copy()
