@@ -24,8 +24,8 @@ def clamp(angle):
         angle += 2 * np.pi
     return angle
 
-link = np.array([0.03953, 0.0975, 0.09879, 0.1]) # l1, l2, l3, l4
-offset = np.array([0.07, 0.03468, 0, 0]) #base, n2, n3, n4
+link = np.array([0.04853, 0.096, 0.09879, 0.1]) # l1, l2, l3, l4 101.44 98.44
+offset = np.array([0.07, 0.03234, 0, 0]) #base, n2, n3, n4
 a = math.atan2(link[1], offset[1])
 dh_params = [[0, np.pi/2, link[0]+offset[0], np.pi/2],
              [math.sqrt(link[1]**2 + offset[1]**2), 0, 0, a],

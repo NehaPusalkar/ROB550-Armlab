@@ -181,13 +181,39 @@ class Kinect():
         #print(cv2.getAffineTransform(pts1, pts2))
         #return cv2.getAffineTransform(pts1, pts2)
 
+    def getAffineTransform3d(self, coord1, coord2):
+        """!
+        @brief      Find the affine matrix transform between 2 sets of corresponding coordinates.
+
+                    TODO: Rewrite this function to take in an arbitrary number of coordinates and find the transform without
+                    using cv2 functions
+
+        @param      coord1  The coordinate 1
+        @param      coord2  The coordinate 2
+
+        @return     Affine transform between coordinates.
+        """
+        A = []
+        B = []
+        for point in coord2:
+            A.append([point[0], point[1], point[2], 1, 0, 0, 0, 0, 0, 0, 0, 0])
+            A.append([0, 0, 0, 0, point[0], point[1], point[2], 1, 0, 0, 0, 0])
+            A.append([0, 0, 0, 0, 0, 0, 0, 0, point[0], point[1], point[2], 1])
+        for point in coord1:
+            B.append(point[0])
+            B.append(point[1])
+            B.append(point[2])
+        return np.reshape(np.dot(np.linalg.pinv(np.array(A)), np.array(B)),(3,4))
+
     def get_xyz_in_world(self, rgb_click_point):
         depth = self.DepthFrameRaw[rgb_click_point[1], rgb_click_point[0]]
         depth = 0.1236 * np.tan(depth/2842.5 + 1.1863) * 1000
         xyz_in_cam = depth * np.dot(self.cam_matrix_inv, np.append(rgb_click_point, 1))
         xyz_in_world = xyz_in_cam.reshape((3,1)) - self.ex_matrix[:,3].reshape((3,1))
         xyz_in_world = np.dot(np.linalg.inv(self.ex_matrix[0:3, 0:3]), xyz_in_world)
-        return list(xyz_in_world.reshape(3,))
+        output = list(xyz_in_world.reshape(3,))
+        output[2] = output[2] #offset
+        return output
 
     def registerDepthFrame(self, frame):
         """!
@@ -211,7 +237,8 @@ class Kinect():
         cam_matrix = np.array([[ 518.78051904,    0. ,         318.6431452 ],
                                 [   0.       ,   518.6592693  , 267.11464023],
                                 [   0.        ,    0.          ,  1.        ]])
-        coeff = np.array([2.49214268e-01, -8.25220241e-01, 1.64661e-03,  -1.79181e-03, 1.131698341e+00])
+        #coeff = np.array([2.49214268e-01, -8.25220241e-01, 1.64661e-03,  -1.79181e-03, 1.131698341e+00])
+        coeff = np.array([ 0.16328725 ,-0.48506866 , 0.00144983 ,-0.00624101 , 0.40224413])
         affine_matrix = np.array([[  9.29346844e-1,  -3.23494980e-03,   11.2347976],
                                   [  1.48233033e-03,   8.74361534e-01,   31.8750435]])
         return cam_matrix, coeff, affine_matrix
@@ -327,5 +354,4 @@ class Kinect():
                     color_detected = key
             output_h = "{}".format(color_detected)
             cv2.putText(self.VideoFrame, output_h, (2*x, int(2.1333*y) - 20), font, 1, (0, 0, 0))
-        # cv2.namedWindow("image", cv2.WINDOW_NORMAL)
-        # cv2.imshow("image",canvas)
+        self.block_detections = block_center_in_rgb

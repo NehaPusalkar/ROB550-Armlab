@@ -106,6 +106,9 @@ class StateMachine():
         
         if self.next_state == "move_block":
             self.move_block()
+        
+        if self.next_state == "auto_move":
+            self.auto_move()
 
     """Functions run for each state"""
 
@@ -176,7 +179,7 @@ class StateMachine():
         image = self.kinect.VideoFrame #1280X960
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         detections = detector.detect(image)
-        while(len(detections) != 4):
+        while(len(detections) != 6):
             image = self.kinect.VideoFrame
             image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
             print(detections)
@@ -187,22 +190,32 @@ class StateMachine():
         print("Detection Done!")
         detected_points = []
         for detec in detections:
-            if(detec['id'] in range(0,5)):
+            if(detec['id'] in range(0,7)):
                 detected_points.append(detec['center'])
         cam_matrix, coeff, affine_matrix = self.kinect.loadCameraCalibration()
         self.kinect.depth2rgb_affine = affine_matrix
-        real = np.array([[-565/2, -565/2, 0],[-565/2, 565/2, 0],[565/2, 565/2, 0],[565/2, -565/2, 0]], dtype=np.float32)
-        print([0.5, 0.46875]*np.array(detected_points))
-        R_i = np.array([[ 3.13368686],[ 0.0177802 ],[-0.00410181]])
-        t_i = np.array([[ -45.59278579],[  22.55517525],[ 954.84846459]])
-        ex_matrix = cv2.solvePnP(real, [0.5, 0.46875]*np.array(detected_points, dtype=np.float32), cam_matrix, coeff, R_i, t_i)
-        R = cv2.Rodrigues(ex_matrix[1])[0]
-        t = ex_matrix[2]
+
         cam_matrix_inv = np.linalg.inv(cam_matrix)
         cam_matrix_inv[2][2] = 1
-        #self.kinect.ex_matrix = np.concatenate((np.linalg.inv(R), -t), axis=1)
-        self.kinect.ex_matrix = np.concatenate((R, t), axis=1)
         self.kinect.cam_matrix_inv = cam_matrix_inv
+
+        detected_points = [0.5, 0.46875]*np.array(detected_points)
+        detected_points_dep = []
+        for point in detected_points:
+            depth = self.kinect.DepthFrameRaw[int(point[1]), int(point[0])]
+            depth = 0.1236 * np.tan(depth/2842.5 + 1.1863) * 1000
+            detected_points_dep.append(depth * np.dot(self.kinect.cam_matrix_inv, np.append(point, 1)))
+        print(detected_points_dep)
+        real = np.array([[-565/2, 0, 76],[-565/2, -565/2, 0],[-565/2, 565/2, 0],[565/2, 565/2, 0],[565/2, -565/2, 0],[0, -565/2, 0]], dtype=np.float32)
+        # print([0.5, 0.46875]*np.array(detected_points))
+        # R_i = np.array([[ 3.13368686],[ 0.0177802 ],[-0.00410181]])
+        # t_i = np.array([[ -47.59278579],[  -61.55517525],[ 954.84846459]])
+        # ex_matrix = cv2.solvePnP(real, [0.5, 0.46875]*np.array(detected_points, dtype=np.float32), cam_matrix, coeff, R_i, t_i)
+        # R = cv2.Rodrigues(ex_matrix[1])[0]
+        # t = ex_matrix[
+        ex_affine = self.kinect.getAffineTransform3d(detected_points_dep, real)
+        self.kinect.ex_matrix = ex_affine
+        # self.kinect.ex_matrix = np.concatenate((R, t), axis=1)
         print(self.kinect.ex_matrix)
         self.kinect.kinectCalibrated = True
         self.status_message = "Calibration - Completed Calibration"
@@ -236,7 +249,7 @@ class StateMachine():
             self.kinect.new_click = False
             xyz = self.kinect.get_xyz_in_world(rgb_click_point)
             xyz = np.array(xyz)/1000
-            xyz[2] = xyz[2] + 0.150
+            xyz[2] = xyz[2] + 0.164
             phi = - math.pi/2
             xyzphi = np.concatenate((xyz, [phi]), axis = 0)
             print("xyz:" + str(xyz))
@@ -251,10 +264,19 @@ class StateMachine():
                     choice = format(i)
             
             print(options[choice])
+            options[choice][3] = options[choice][3] + math.pi/4
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(options[choice])
             tp.go(5)
+
+            time.sleep(1)
+            options[choice][3] = options[choice][3] - math.pi/4
+            tp = TrajectoryPlanner(self.rexarm)
+            tp.set_initial_wp()
+            tp.set_final_wp(options[choice])
+            tp.go(5)
+            time.sleep(1)
             
             #pick the block
             print("pick_block!!")
@@ -277,6 +299,24 @@ class StateMachine():
             time.sleep(1)
             self.rexarm.close_gripper()
             time.sleep(2)
+
+            print("lift_block!!")
+            xyzphi[2] = xyzphi[2] + 0.04
+            options = IK_geometric(dh_params, xyzphi)
+            choice = 0
+            for i, joint_angles in enumerate(options):
+                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
+                test_xyz = deepcopy(xyz)
+                test_xyz[2] -= 0.15
+                compare = vclamp(test_xyz - xyz)
+                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
+                    choice = format(i)
+            
+            print(options[choice])
+            tp = TrajectoryPlanner(self.rexarm)
+            tp.set_initial_wp()
+            tp.set_final_wp(options[choice])
+            tp.go(5)
             self.next_state = "move_block"
 
     def move_block(self):
@@ -291,7 +331,7 @@ class StateMachine():
             self.kinect.new_click = False
             xyz = self.kinect.get_xyz_in_world(rgb_click_point)
             xyz = np.array(xyz)/1000
-            xyz[2] = xyz[2] + 0.150
+            xyz[2] = xyz[2] + 0.155
             phi = - math.pi/2
             xyzphi = np.concatenate((xyz, [phi]), axis = 0)
             options = IK_geometric(dh_params, xyzphi)
@@ -304,6 +344,14 @@ class StateMachine():
                 if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
                     choice = format(i)
             
+            options[choice][3] = options[choice][3] + math.pi/4
+            tp = TrajectoryPlanner(self.rexarm)
+            tp.set_initial_wp()
+            tp.set_final_wp(options[choice])
+            tp.go(5)
+            time.sleep(1)
+
+            options[choice][3] = options[choice][3] - math.pi/4
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(options[choice])
@@ -335,6 +383,13 @@ class StateMachine():
             tp.set_final_wp(options[choice])
             tp.go(5)
             self.next_state = "idle"
+
+    def auto_move():
+        vclamp = np.vectorize(clamp)
+        self.current_state = "move_block"
+        self.next_state = "move_block"
+        self.status_message = "State: Moving block..."
+        xyzphi = np.array([[]])
 
     def clear_record(self):
         self.status_message = "State: Clearing Record ..."
