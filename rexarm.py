@@ -451,8 +451,12 @@ class Rexarm():
     def open_gripper(self):
         """!
         @brief      TODO: Tell the gripper to open.
+
         """
-        pass
+        for joint in self._joints:
+            if joint.is_gripper:
+                joint.position = -20 * D2R
+               
 
     @_ensure_initialized
     def open_gripper_blocking(self):
@@ -467,15 +471,22 @@ class Rexarm():
 
         @return     True if gripper open, False otherwise.
         """
-        pass
+        for joint in self._joints:
+            if joint.is_gripper:
+                if joint.position_fb > -50 * D2R:
+                    return True
+                else:
+                    return False
 
     @_ensure_initialized
     def close_gripper(self):
         """!
         @brief      TODO Closes a gripper.
         """
-        pass
-
+        for joint in self._joints:
+            if joint.is_gripper:
+                joint.position = -150 * D2R
+                
     @_ensure_initialized
     def close_gripper_blocking(self):
         """!
@@ -489,7 +500,12 @@ class Rexarm():
 
         @return     True if gripper close, False otherwise.
         """
-        pass
+        for joint in self._joints:
+            if joint.is_gripper:
+                if joint.position_fb < -100 * D2R:
+                    return True
+                else:
+                    return False
 
     @_ensure_initialized
     def toggle_gripper(self):

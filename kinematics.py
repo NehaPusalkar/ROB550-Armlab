@@ -189,9 +189,7 @@ def IK_geometric(dh_params, pose):
     l1 = dh_params[1][0]
     l2 = dh_params[2][0]
     gamma = math.atan2(d,(base-z))
-    print(l)
     acosvalue = (l**2 + l1**2 - l2**2)/(2*l*l1)
-    print(acosvalue)
     while d >= 0.2 or acosvalue > 1 or acosvalue < -1: # while here may cause problem (reclick to fix)
         z -= 0.120
         x *= (d-0.15) / d

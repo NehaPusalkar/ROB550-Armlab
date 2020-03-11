@@ -299,9 +299,12 @@ class Kinect():
                         cv2.drawContours(self.VideoFrame, [box_in_rgb], -1, (255,0,255), 2)
 
         num = len(block_center)
-        block_center = np.array(block_center).reshape(num,2).T
-        block_center_h = np.concatenate((block_center, np.ones([1, num])), axis=0)
-        block_center_in_rgb = np.dot(affine_matrix, block_center_h).T
+        if self.kinectCalibrated:
+            block_center_in_rgb = np.array(block_center).reshape(num,2)
+        else:
+            block_center = np.array(block_center).reshape(num,2).T
+            block_center_h = np.concatenate((block_center, np.ones([1, num])), axis=0)
+            block_center_in_rgb = np.dot(affine_matrix, block_center_h).T
         font = cv2.FONT_HERSHEY_SIMPLEX
         for center in block_center_in_rgb:
             min_loss = 200000

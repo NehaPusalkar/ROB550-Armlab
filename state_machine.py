@@ -9,10 +9,7 @@ import cv2
 from trajectory_planner import TrajectoryPlanner
 from apriltag import apriltag
 from kinematics import *
-<<<<<<< HEAD
 from copy import deepcopy
-=======
->>>>>>> 668b3883ad8fed0ac588f87828f3cde376fd79ab
 
 class StateMachine():
     """!
@@ -106,6 +103,9 @@ class StateMachine():
             
         if self.next_state == "test_ik":
             self.test_ik()
+        
+        if self.next_state == "move_block":
+            self.move_block()
 
     """Functions run for each state"""
 
@@ -176,7 +176,7 @@ class StateMachine():
         image = self.kinect.VideoFrame #1280X960
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         detections = detector.detect(image)
-        while(len(detections) != 5):
+        while(len(detections) != 4):
             image = self.kinect.VideoFrame
             image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
             print(detections)
@@ -191,11 +191,11 @@ class StateMachine():
                 detected_points.append(detec['center'])
         cam_matrix, coeff, affine_matrix = self.kinect.loadCameraCalibration()
         self.kinect.depth2rgb_affine = affine_matrix
-        real = np.array([[-565/2, 0, 75], [-565/2, -565/2, 0],[-565/2, 565/2, 0],[565/2, 565/2, 0],[565/2, -565/2, 0]], dtype=np.float32)
-        ##TODO check [x,y] or [y,x]
+        real = np.array([[-565/2, -565/2, 0],[-565/2, 565/2, 0],[565/2, 565/2, 0],[565/2, -565/2, 0]], dtype=np.float32)
         print([0.5, 0.46875]*np.array(detected_points))
-        #TODO add some initial guess here and try P3P
-        ex_matrix = cv2.solvePnP(real, [0.5, 0.46875]*np.array(detected_points, dtype=np.float32), cam_matrix, coeff)
+        R_i = np.array([[ 3.13368686],[ 0.0177802 ],[-0.00410181]])
+        t_i = np.array([[ -45.59278579],[  22.55517525],[ 954.84846459]])
+        ex_matrix = cv2.solvePnP(real, [0.5, 0.46875]*np.array(detected_points, dtype=np.float32), cam_matrix, coeff, R_i, t_i)
         R = cv2.Rodrigues(ex_matrix[1])[0]
         t = ex_matrix[2]
         cam_matrix_inv = np.linalg.inv(cam_matrix)
@@ -221,83 +221,120 @@ class StateMachine():
                 xyz_in_cam_h = np.append(xyz_in_cam, 1)
                 xyz_in_world = np.dot(self.kinect.ex_matrix, xyz_in_cam_h)
                 print(xyz_in_world)
-
     
     def test_ik(self):
         vclamp = np.vectorize(clamp)
         self.current_state = "test_ik"
-        self.next_state = "idle"
+        self.next_state = "test_ik"
         self.status_message = "State: Testing IK..."
-        while(not self.next_state=='estop'):
-            if(self.kinect.new_click == True):
-                rgb_click_point = self.kinect.last_click.copy()
-                self.kinect.new_click = False
-                xyz = self.kinect.get_xyz_in_world(rgb_click_point)
-                xyz = np.array(xyz)/1000
-                xyz[2] = xyz[2] + 0.150
-                x, y = xyz[0], xyz[1]
+        xyzphi = np.array([[]])
+        if(self.kinect.new_click == True):
+            print("here new click!!")
+            self.rexarm.open_gripper()
+            time.sleep(2)
+            rgb_click_point = self.kinect.last_click.copy()
+            self.kinect.new_click = False
+            xyz = self.kinect.get_xyz_in_world(rgb_click_point)
+            xyz = np.array(xyz)/1000
+            xyz[2] = xyz[2] + 0.150
+            phi = - math.pi/2
+            xyzphi = np.concatenate((xyz, [phi]), axis = 0)
+            print("xyz:" + str(xyz))
+            options = IK_geometric(dh_params, xyzphi)
+            choice = 0
+            for i, joint_angles in enumerate(options):
+                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
+                test_xyz = deepcopy(xyz)
+                test_xyz[2] -= 0.15
+                compare = vclamp(test_xyz - xyz)
+                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
+                    choice = format(i)
+            
+            print(options[choice])
+            tp = TrajectoryPlanner(self.rexarm)
+            tp.set_initial_wp()
+            tp.set_final_wp(options[choice])
+            tp.go(5)
+            
+            #pick the block
+            print("pick_block!!")
+            xyzphi[2] = xyzphi[2] - 0.04
+            options = IK_geometric(dh_params, xyzphi)
+            choice = 0
+            for i, joint_angles in enumerate(options):
+                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
+                test_xyz = deepcopy(xyz)
+                test_xyz[2] -= 0.15
+                compare = vclamp(test_xyz - xyz)
+                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
+                    choice = format(i)
+            
+            print(options[choice])
+            tp = TrajectoryPlanner(self.rexarm)
+            tp.set_initial_wp()
+            tp.set_final_wp(options[choice])
+            tp.go(5)
+            time.sleep(1)
+            self.rexarm.close_gripper()
+            time.sleep(2)
+            self.next_state = "move_block"
 
-                phi = - math.pi/2
-                xyz = np.concatenate((xyz, [phi]), axis = 0)
-                print("xyz:" + str(xyz))
-                options = IK_geometric(dh_params, xyz)
-                choice = 0
-                for i, joint_angles in enumerate(options):
-                    pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
-                    test_xyz = deepcopy(xyz)
-                    test_xyz[2] -= 0.15
-                    compare = vclamp(test_xyz - xyz)
-                    if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
-                        choice = format(i)
-                
-                # else:
-                #     xyz[2] -= 0.120
-                #     xyz[0] *= (d-0.15) / d
-                #     xyz[1] *= (d-0.15) / d
-                #     phi = 0
-                #     xyz = np.concatenate((xyz, [phi]), axis = 0)
-                #     print("xyz:" + str(xyz))
-                #     options = IK_geometric(dh_params, xyz)
-                #     choice = 0
-                #     for i, joint_angles in enumerate(options):
-                #         # print('Option {}: {}'.format(i, joint_angles))
-                #         pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
-                #         test_xyz = deepcopy(xyz)
-                #         test_xyz[2] -= 0.15
-                #         compare = vclamp(test_xyz - xyz)
-                #         if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
-                #             # print('Option {} matches angles used in FK'.format(i))
-                #             choice = format(i)
+    def move_block(self):
+        vclamp = np.vectorize(clamp)
+        self.current_state = "move_block"
+        self.next_state = "move_block"
+        self.status_message = "State: Moving block..."
+        xyzphi = np.array([[]])
+        if(self.kinect.new_click == True):
+            print("move_block!!")
+            rgb_click_point = self.kinect.last_click.copy()
+            self.kinect.new_click = False
+            xyz = self.kinect.get_xyz_in_world(rgb_click_point)
+            xyz = np.array(xyz)/1000
+            xyz[2] = xyz[2] + 0.150
+            phi = - math.pi/2
+            xyzphi = np.concatenate((xyz, [phi]), axis = 0)
+            options = IK_geometric(dh_params, xyzphi)
+            choice = 0
+            for i, joint_angles in enumerate(options):
+                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
+                test_xyz = deepcopy(xyz)
+                test_xyz[2] -= 0.15
+                compare = vclamp(test_xyz - xyz)
+                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
+                    choice = format(i)
+            
+            tp = TrajectoryPlanner(self.rexarm)
+            tp.set_initial_wp()
+            tp.set_final_wp(options[choice])
+            tp.go(5)
+            time.sleep(1)
 
-                
-                
-                print(options[choice])
-                tp = TrajectoryPlanner(self.rexarm)
-                tp.set_initial_wp()
-                tp.set_final_wp(options[choice])
-                tp.go(5)
+            #release block
+            print("release!!")
+            self.kinect.new_click = False
+            self.rexarm.open_gripper()
+            time.sleep(2)
 
-
-                # if(self.next_state == "estop"):
-                #     break
-                # d = math.sqrt(xyz[0]**2 + xyz[1]**2)
-                # alpha = math.atan2(xyz[1],xyz[0])
-                # #compare l and l1+l2
-                # if(d > 0.195):
-                #     xyz[0] = (d - 0.150)*math.cos(alpha)
-                #     xyz[1] = (d - 0.150)*math.sin(alpha)
-                #     phi = 0
-                # else:
-                #     xyz[2] = xyz[2] + 0.150
-                #     phi = -math.pi/2
-                # xyz = np.concatenate((xyz, [phi]), axis = 0)
-                # print("xyz:" + str(xyz))
-                # options = IK_geometric(dh_params, xyz)
-                # print(options[0])
-                # tp = TrajectoryPlanner(self.rexarm)
-                # tp.set_initial_wp()
-                # tp.set_final_wp(options[0])
-                # tp.go(5)
+            #lift arm
+            xyz[2] = xyz[2] + 0.04
+            phi = - math.pi/2
+            xyzphi = np.concatenate((xyz, [phi]), axis = 0)
+            options = IK_geometric(dh_params, xyzphi)
+            choice = 0
+            for i, joint_angles in enumerate(options):
+                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
+                test_xyz = deepcopy(xyz)
+                test_xyz[2] -= 0.15
+                compare = vclamp(test_xyz - xyz)
+                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
+                    choice = format(i)
+            
+            tp = TrajectoryPlanner(self.rexarm)
+            tp.set_initial_wp()
+            tp.set_final_wp(options[choice])
+            tp.go(5)
+            self.next_state = "idle"
 
     def clear_record(self):
         self.status_message = "State: Clearing Record ..."
