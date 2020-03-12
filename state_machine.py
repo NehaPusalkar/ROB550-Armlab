@@ -10,7 +10,7 @@ from trajectory_planner import TrajectoryPlanner
 from apriltag import apriltag
 from kinematics import *
 from copy import deepcopy
-
+D2R = np.pi / 180.0
 class StateMachine():
     """!
     @brief      This class describes a state machine.
@@ -235,6 +235,40 @@ class StateMachine():
                 xyz_in_world = np.dot(self.kinect.ex_matrix, xyz_in_cam_h)
                 print(xyz_in_world)
     
+    def CalcXYZPhi(self, pose):
+        x = pose[0]
+        y = pose[1]
+        z = pose[2]
+        phi = pose[3]
+        base = dh_params[0][2]
+        d = math.sqrt(x**2 + y**2)
+        alpha = math.pi/2 - dh_params[1][3]
+        l = math.sqrt((base - z)**2 + d**2)
+        l1 = dh_params[1][0]
+        l2 = dh_params[2][0]
+        gamma = math.atan2(d,(base-z))
+        acosvalue = (l**2 + l1**2 - l2**2)/(2*l*l1)
+        while d >= 0.2 or acosvalue > 1 or acosvalue < -1: # while here may cause problem (reclick to fix)
+            z -= 0.110
+            x *= (d-link[-1]) / d
+            y *= (d-link[-1]) / d
+            phi = 0
+
+            d = math.sqrt(x**2 + y**2)
+            alpha = math.pi/2 - dh_params[1][3]
+            l = math.sqrt((base - z)**2 + d**2)
+            l1 = dh_params[1][0]
+            l2 = dh_params[2][0]
+            gamma = math.atan2(d,(base-z))
+            acosvalue = (l**2 + l1**2 - l2**2)/(2*l*l1)
+
+        pose[0] = x
+        pose[1] = y 
+        pose[2] = z
+        flag = (pose[3] == phi)
+        pose[3] = phi
+        return flag, pose
+
     def test_ik(self):
         vclamp = np.vectorize(clamp)
         self.current_state = "test_ik"
@@ -242,36 +276,51 @@ class StateMachine():
         self.status_message = "State: Testing IK..."
         xyzphi = np.array([[]])
         if(self.kinect.new_click == True):
-            print("here new click!!")
+            print("new click!!")
+            #move to the block and prepare grasp
             self.rexarm.open_gripper()
-            time.sleep(2)
+            time.sleep(1)
             rgb_click_point = self.kinect.last_click.copy()
             self.kinect.new_click = False
+            end_angle = 0
+            i = 0
+            for center in self.kinect.block_detections:
+                if(np.sum((center - np.array(rgb_click_point))**2)<50):
+                    end_angle = self.kinect.block_detections_angle[i]
+                    rgb_click_point = center
+                    break
+                i += 1
+            
             xyz = self.kinect.get_xyz_in_world(rgb_click_point)
             xyz = np.array(xyz)/1000
-            xyz[2] = xyz[2] + 0.164
+            xyz[2] = xyz[2] + link[-2]
+            d = math.sqrt(xyz[0]**2+xyz[1]**2)
+            offset_base = math.acos((2*d**2 - 0.008**2)/(2*d**2))
             phi = - math.pi/2
             xyzphi = np.concatenate((xyz, [phi]), axis = 0)
             print("xyz:" + str(xyz))
+            flag, xyzphi = self.CalcXYZPhi(xyzphi)
             options = IK_geometric(dh_params, xyzphi)
             choice = 0
-            for i, joint_angles in enumerate(options):
-                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
-                test_xyz = deepcopy(xyz)
-                test_xyz[2] -= 0.15
-                compare = vclamp(test_xyz - xyz)
-                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
-                    choice = format(i)
-            
-            print(options[choice])
-            options[choice][3] = options[choice][3] + math.pi/4
+            #avoid collide with the board
+            options[choice][1] = options[choice][1] + math.pi/3
+            options[choice][0] = options[choice][0] - offset_base
+            wrist2 = math.pi/2 - D2R * end_angle + options[choice][0]
+            if (wrist2 >= math.pi/4):
+                wrist2 = wrist2 - math.pi/2
+            elif (wrist2 <= -math.pi/4):
+                wrist2 = wrist2 + math.pi/2
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(options[choice])
             tp.go(5)
-
             time.sleep(1)
-            options[choice][3] = options[choice][3] - math.pi/4
+            if(flag):
+                self.rexarm.set_position_wrist2(wrist2)
+                time.sleep(1)
+
+            #rotate shoulder
+            options[choice][1] = options[choice][1] - math.pi/3
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(options[choice])
@@ -280,43 +329,17 @@ class StateMachine():
             
             #pick the block
             print("pick_block!!")
-            xyzphi[2] = xyzphi[2] - 0.04
-            options = IK_geometric(dh_params, xyzphi)
-            choice = 0
-            for i, joint_angles in enumerate(options):
-                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
-                test_xyz = deepcopy(xyz)
-                test_xyz[2] -= 0.15
-                compare = vclamp(test_xyz - xyz)
-                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
-                    choice = format(i)
-            
-            print(options[choice])
+            self.rexarm.close_gripper()
+            time.sleep(2)
+
+            #lift the block
+            options[choice][1] = options[choice][1] + math.pi/3
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(options[choice])
             tp.go(5)
             time.sleep(1)
-            self.rexarm.close_gripper()
-            time.sleep(2)
-
-            print("lift_block!!")
-            xyzphi[2] = xyzphi[2] + 0.04
-            options = IK_geometric(dh_params, xyzphi)
-            choice = 0
-            for i, joint_angles in enumerate(options):
-                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
-                test_xyz = deepcopy(xyz)
-                test_xyz[2] -= 0.15
-                compare = vclamp(test_xyz - xyz)
-                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
-                    choice = format(i)
-            
-            print(options[choice])
-            tp = TrajectoryPlanner(self.rexarm)
-            tp.set_initial_wp()
-            tp.set_final_wp(options[choice])
-            tp.go(5)
+            self.rexarm.set_position_wrist2(0)
             self.next_state = "move_block"
 
     def move_block(self):
@@ -329,29 +352,41 @@ class StateMachine():
             print("move_block!!")
             rgb_click_point = self.kinect.last_click.copy()
             self.kinect.new_click = False
+            end_angle = 0
+            i = 0
+            for i, center in self.kinect.block_detections:
+                if(np.sum((center - np.array(rgb_click_point))**2)<50):
+                    end_angle = self.kinect.block_detections_angle[i]
+                    rgb_click_point = center
+                    break
+                i += 1
             xyz = self.kinect.get_xyz_in_world(rgb_click_point)
             xyz = np.array(xyz)/1000
-            xyz[2] = xyz[2] + 0.155
+            xyz[2] = xyz[2] + link[-2] + 0.04
+            d = math.sqrt(xyz[0]**2+xyz[1]**2)
+            offset_base = math.acos((2*d**2 - 0.008**2)/(2*d**2))
             phi = - math.pi/2
             xyzphi = np.concatenate((xyz, [phi]), axis = 0)
+            flag, xyzphi = self.CalcXYZPhi(xyzphi)
+            if(not flag):
+                xyzphi[2] = xyzphi[2] - 0.04
             options = IK_geometric(dh_params, xyzphi)
             choice = 0
-            for i, joint_angles in enumerate(options):
-                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
-                test_xyz = deepcopy(xyz)
-                test_xyz[2] -= 0.15
-                compare = vclamp(test_xyz - xyz)
-                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
-                    choice = format(i)
-            
-            options[choice][3] = options[choice][3] + math.pi/4
+            #avoid collide with the board
+            options[choice][1] = options[choice][1] + math.pi/3
+            options[choice][0] = options[choice][0] - offset_base
+            wrist2 = math.pi/2 - D2R * end_angle + options[choice][0]
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(options[choice])
             tp.go(5)
             time.sleep(1)
+            if(flag):
+                self.rexarm.set_position_wrist2(wrist2)
+                time.sleep(1)
 
-            options[choice][3] = options[choice][3] - math.pi/4
+            #rotate shoulder 
+            options[choice][1] = options[choice][1] - math.pi/3
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(options[choice])
@@ -364,24 +399,14 @@ class StateMachine():
             self.rexarm.open_gripper()
             time.sleep(2)
 
-            #lift arm
-            xyz[2] = xyz[2] + 0.04
-            phi = - math.pi/2
-            xyzphi = np.concatenate((xyz, [phi]), axis = 0)
-            options = IK_geometric(dh_params, xyzphi)
-            choice = 0
-            for i, joint_angles in enumerate(options):
-                pose = get_pose_from_T(FK_dh(deepcopy(dh_params), joint_angles, 3), joint_angles)
-                test_xyz = deepcopy(xyz)
-                test_xyz[2] -= 0.15
-                compare = vclamp(test_xyz - xyz)
-                if np.allclose(compare, np.zeros_like(compare), rtol=1e-3, atol=1e-4):
-                    choice = format(i)
-            
+            #lift the arm
+            options[choice][1] = options[choice][1] + math.pi/3
             tp = TrajectoryPlanner(self.rexarm)
             tp.set_initial_wp()
             tp.set_final_wp(options[choice])
             tp.go(5)
+            time.sleep(1)
+            self.rexarm.set_position_wrist2(0)
             self.next_state = "idle"
 
     def auto_move():

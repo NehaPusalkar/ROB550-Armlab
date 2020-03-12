@@ -50,6 +50,8 @@ class Kinect():
         """ block info """
         self.block_contours = np.array([])
         self.block_detections = np.array([])
+        self.block_detections_angle = np.array([])
+        self.block_detections_color = []
 
     def toggleExposure(self, state):
         """!
@@ -206,14 +208,17 @@ class Kinect():
         return np.reshape(np.dot(np.linalg.pinv(np.array(A)), np.array(B)),(3,4))
 
     def get_xyz_in_world(self, rgb_click_point):
-        depth = self.DepthFrameRaw[rgb_click_point[1], rgb_click_point[0]]
-        depth = 0.1236 * np.tan(depth/2842.5 + 1.1863) * 1000
-        xyz_in_cam = depth * np.dot(self.cam_matrix_inv, np.append(rgb_click_point, 1))
-        xyz_in_world = xyz_in_cam.reshape((3,1)) - self.ex_matrix[:,3].reshape((3,1))
-        xyz_in_world = np.dot(np.linalg.inv(self.ex_matrix[0:3, 0:3]), xyz_in_world)
-        output = list(xyz_in_world.reshape(3,))
-        output[2] = output[2] #offset
-        return output
+        if self.kinectCalibrated:
+            depth = self.DepthFrameRaw[int(rgb_click_point[1]), int(rgb_click_point[0])]
+            depth = 0.1236 * np.tan(depth/2842.5 + 1.1863) * 1000
+            xyz_in_cam = depth * np.dot(self.cam_matrix_inv, np.append(rgb_click_point, 1))
+            xyz_in_world = xyz_in_cam.reshape((3,1)) - self.ex_matrix[:,3].reshape((3,1))
+            xyz_in_world = np.dot(np.linalg.inv(self.ex_matrix[0:3, 0:3]), xyz_in_world)
+            output = list(xyz_in_world.reshape(3,))
+            output[2] = output[2] #offset
+            return output
+        else:
+            return [0,0,0]
 
     def registerDepthFrame(self, frame):
         """!
@@ -296,6 +301,7 @@ class Kinect():
         # canvas[...,1] = depth_frame
         # canvas[...,2] = depth_frame
         block_center = []
+        block_angle = []
         affine_matrix = np.array([[ 9.29346844e-1,  -3.23494980e-03,   11.2347976],
                                  [1.48233033e-03,   8.74361534e-01,   31.8750435]])
         if(len(contours)!=0):
@@ -308,9 +314,12 @@ class Kinect():
                 
                 if(len(approx)==4):
                     rect = cv2.minAreaRect(contour)
+                    
                     box = cv2.boxPoints(rect)
                     box = np.int0(box)
-                    cur_center = np.sum(approx, axis=0)/len(approx)
+                    cur_center = (np.sum(approx, axis=0)/len(approx)).reshape(2)
+                    if (abs(self.get_xyz_in_world(cur_center)[0]) > 300 or abs(self.get_xyz_in_world(cur_center)[1]) > 300):
+                        continue
                     for center in block_center:
                         if(np.sum((center - cur_center)**2)<50):
                             overlap = True
@@ -324,6 +333,7 @@ class Kinect():
                             box_in_rgb = np.dot(affine_matrix, box_h).T
                         box_in_rgb = ([2, 2.1333]*box_in_rgb[:][0:4]).astype(int)
                         cv2.drawContours(self.VideoFrame, [box_in_rgb], -1, (255,0,255), 2)
+                        block_angle.append(abs(rect[-1]))
 
         num = len(block_center)
         if self.kinectCalibrated:
@@ -333,6 +343,7 @@ class Kinect():
             block_center_h = np.concatenate((block_center, np.ones([1, num])), axis=0)
             block_center_in_rgb = np.dot(affine_matrix, block_center_h).T
         font = cv2.FONT_HERSHEY_SIMPLEX
+        block_color = []
         for center in block_center_in_rgb:
             min_loss = 200000
             x=int(center[0])
@@ -340,7 +351,6 @@ class Kinect():
             h = int(video_frame[y][x][0])
             s = int(video_frame[y][x][1])
             v = int(video_frame[y][x][2])
-            #print("=======")
             for key in colors_center:
                 h_diff = abs(h - colors_center[key][0])
                 s_diff = abs(s - colors_center[key][1])
@@ -348,10 +358,12 @@ class Kinect():
                 
                 loss = math.sqrt(0.8 * (h_diff**2) + 0.05 * (s_diff**2) + 0.15 * (v_diff**2)) 
                 #loss = math.sqrt(1 * (h_diff**2) + 1 * (s_diff**2) + 1 * (v_diff**2)) 
-                #print(key+':'+str(loss))
                 if (loss < min_loss):
                     min_loss = loss
                     color_detected = key
+            block_color.append(color_detected)
             output_h = "{}".format(color_detected)
             cv2.putText(self.VideoFrame, output_h, (2*x, int(2.1333*y) - 20), font, 1, (0, 0, 0))
         self.block_detections = block_center_in_rgb
+        self.block_detections_angle = np.array(block_angle)
+        self.block_detections_color = block_color

@@ -146,8 +146,8 @@ class TrajectoryPlanner():
         """
         plan = np.concatenate((plan, np.ones((len(plan),1)) * self.wrist2), axis = 1)
         plan = np.concatenate((plan, np.ones((len(plan),1)) * self.wrist3), axis = 1)
-        plan_s = np.concatenate((plan_s, np.zeros((len(plan_s),1))), axis = 1)
-        plan_s = np.concatenate((plan_s, np.zeros((len(plan_s),1))), axis = 1)
+        plan_s = np.concatenate((plan_s, 5 * np.ones((len(plan_s),1))), axis = 1)
+        plan_s = np.concatenate((plan_s, 5 * np.ones((len(plan_s),1))), axis = 1)
 
         for i in range(len(plan)):
             index = min(i+look_ahead, len(plan) - 1)

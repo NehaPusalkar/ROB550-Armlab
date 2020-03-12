@@ -24,7 +24,7 @@ def clamp(angle):
         angle += 2 * np.pi
     return angle
 
-link = np.array([0.04853, 0.096, 0.09879, 0.1]) # l1, l2, l3, l4 101.44 98.44
+link = np.array([0.04853, 0.096, 0.09879, 0.125, 0.137]) # l1, l2, l3, l4 101.44 98.44
 offset = np.array([0.07, 0.03234, 0, 0]) #base, n2, n3, n4
 a = math.atan2(link[1], offset[1])
 dh_params = [[0, np.pi/2, link[0]+offset[0], np.pi/2],
@@ -189,21 +189,6 @@ def IK_geometric(dh_params, pose):
     l1 = dh_params[1][0]
     l2 = dh_params[2][0]
     gamma = math.atan2(d,(base-z))
-    acosvalue = (l**2 + l1**2 - l2**2)/(2*l*l1)
-    while d >= 0.2 or acosvalue > 1 or acosvalue < -1: # while here may cause problem (reclick to fix)
-        z -= 0.120
-        x *= (d-0.15) / d
-        y *= (d-0.15) / d
-        phi = 0
-
-        d = math.sqrt(x**2 + y**2)
-        alpha = math.pi/2 - dh_params[1][3]
-        l = math.sqrt((base - z)**2 + d**2)
-        l1 = dh_params[1][0]
-        l2 = dh_params[2][0]
-        gamma = math.atan2(d,(base-z))
-        acosvalue = (l**2 + l1**2 - l2**2)/(2*l*l1)
-
 
     psi = math.acos((l**2 + l1**2 - l2**2)/(2*l*l1))
     beta = math.acos((l1**2 + l2**2 - l**2)/(2*l1*l2))

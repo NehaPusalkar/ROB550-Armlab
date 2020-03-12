@@ -521,6 +521,10 @@ class Rexarm():
         """
         pass
 
+    @_ensure_initialized
+    def set_position_wrist2(self, angle):
+        self._joints[-2].position = angle
+
     def set_positions(self, joint_angles):
         """!
         @brief      Sets the positions.

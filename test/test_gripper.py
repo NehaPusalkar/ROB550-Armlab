@@ -19,7 +19,7 @@ rexarm.initialize(config_file=script_path+'/../config/gripper_only_config.csv')
 # rexarm.toggle_gripper_blocking()
 
 # Test non-blocking versions
-rexarm.open_gripper()
+rexarm.set_position_wrist2(-0.9)
 
 time.sleep(3)
 rexarm.close_gripper()
